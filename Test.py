@@ -1,13 +1,12 @@
+neighbor_sets = {0: {0,1, 2, 3}, 3: {0,1,2,3,4,5,6}, 5: {2,3,4,5,6,7,8},6:{9,3,4,5,6,11}}
+sets = {key: set(value) for key, value in neighbor_sets.items()}
 
+exclusive_neighbors = {}
+for vehicle, neighbor_set in sets.items():
+    # Union of neighbors of all other vehicles
+    others_union = set().union(*(sets[other] for other in sets.keys() if other != vehicle))
+    # Exclusive neighbors for the current vehicle
+    unique_neighbors = neighbor_set - others_union
+    exclusive_neighbors[vehicle] = list(unique_neighbors)
 
-successful_transmissions = {0: [0], 2: [2,4, 5], 1: [0,1, 2, 3, 4], 3: [0, 1, 2,3, 4, 5, 6], 
-                            4: [1, 2, 3,4], 7: [8, 9], 5: [2, 3, 4, 6, 7, 8], 6: [3, 4, 5, 7, 8, 9], 8: [5], 9: []} 
-
-def return_successful_transmissions(successful_transmissions):
-    for key, values in successful_transmissions.items():
-        if key in values:
-            values.remove(key)  # This removes the vehicle from its neighbor list in place
-    return successful_transmissions
-
-a = return_successful_transmissions(successful_transmissions)
-print(a)
+print("Exclusive neighbors:", exclusive_neighbors)

@@ -4,7 +4,7 @@ import random
 NUM_STATIONS = 10      # Number of communication stations
 COMRANGE= 3         # Communication radius (3 neighbors on each side)
 NUM_CHANNELS = 12     # Available channels
-
+from fractions import Fraction
 
 station_info = {}
 
@@ -22,6 +22,8 @@ for vehicle in range(NUM_STATIONS):
 # Print out the neighbors for each station
 for station, info in station_info.items():
     print(f"Station {station} neighbors: {info['neighbors']}")
+
+total_neighbors = sum(len(info['neighbors']) for info in station_info.values()) - NUM_STATIONS
 
 attempted_transmissions = {}
 
@@ -51,10 +53,15 @@ def package_received(vehicle_transmission):
             sets = {key: set(value) for key, value in all_neighbors.items()}
 
             # Find overlapping part (intersection of all sets)
-            overlap = set.intersection(*sets.values())
-            # Find non-overlapping parts
-            non_overlap = {key: value - overlap for key, value in sets.items()}
-            successful_transmissions.update(non_overlap)
+            exclusive_neighbors = {}
+            for vehicle, neighbor_set in sets.items():
+                    # Union of neighbors of all other vehicles
+                others_union = set().union(*(sets[other] for
+                                 other in sets.keys() if other != vehicle))
+                # Exclusive neighbors for the current vehicle
+                unique_neighbors = neighbor_set - others_union
+                exclusive_neighbors[vehicle] = list(unique_neighbors)
+                successful_transmissions.update(exclusive_neighbors)
     for key, values in successful_transmissions.items():
         if key in values:
             values.remove(key)  # This removes the vehicle from its neighbor list in place
@@ -62,3 +69,6 @@ def package_received(vehicle_transmission):
 
 transmissions = package_received(attempted_transmissions)
 print(f"The final transmissioj is{transmissions},\n")
+success_num = sum(len(value) for value in transmissions.values())
+
+print(Fraction(success_num, total_neighbors))
