@@ -10,15 +10,19 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from tqdm import tqdm
-
+import function as f
 # Simulation parameters
 num_vehicles = 10
 communication_range_in_vehicles = 3 # Number of vehicles ahead and behind within communication range
 num_subchannels = 15
 num_subframes = 30000000
 sps_interval_range = (2,7)
+sliding_window_size = 10
 
 
+# Counter for total successful transmissions
+total_successful_transmissions = 0
+pdr_values = []
 threshold = 3
 # Initialize vehicle information
 vehicles_info = {}
@@ -27,57 +31,17 @@ for vehicle in range(num_vehicles):
     start_idx = max(0, vehicle - communication_range_in_vehicles)
     end_idx = min(num_vehicles - 1, vehicle + communication_range_in_vehicles)
     neighbors = list(range(start_idx, end_idx + 1))
-    neighbors.remove(vehicle)  # Exclude self
+    # neighbors.remove(vehicle)  # Exclude self
 
     vehicles_info[vehicle] = {
         'neighbors': neighbors,
         'current_subchannel': np.random.choice(num_subchannels),
         'next_selection_frame': 0,
         'sps_counter': np.random.randint(*sps_interval_range),
-        'resource_map': np.zeros((num_subchannels, 10), dtype=int)  # Local resource map for the last 10 subframes
-    }
+        # Local resource map for the last 10 subframes sliding window
+        'resource_map': np.zeros((num_subchannels, sliding_window_size), dtype=np.uint8)  
+        }
 
-# Counter for total successful transmissions
-total_successful_transmissions = 0
-pdr_values = []
-
-# Function to pick subchannels with usage below a certain threshold
-def pick_value_least(value_list, threshold):
-    value_array = np.array(value_list)
-    n = len(value_list)
-
-    # Filtering values and indices
-    mask = value_array <= threshold
-    selected_values = value_array[mask].tolist()
-    indices = np.where(mask)[0].tolist()
-    num_selected = len(selected_values)
-    percent = num_selected / n
-
-    # Adjust the threshold until at least 20% of subchannels are below it
-    while percent <= 0.2:
-        threshold += 1
-        mask = value_array <= threshold
-        selected_values = value_array[mask].tolist()
-        indices = np.where(mask)[0].tolist()
-        num_selected = len(selected_values)
-        percent = num_selected / n
-
-    return indices
-
-
-
-# Function to select the least used subchannel based on historical usage
-def select_least_used_subchannel(subframe, current_subchannel, resource_map):
-    sensing_range_start = max(0, subframe - 10)
-    subchannel_usage = np.sum(resource_map[:, sensing_range_start:subframe] > 0, axis=1)
-
-    # Sort subchannels by usage, and get the indices of the sorted subchannels
-    indice = pick_value_least(subchannel_usage, threshold)
-    # exclude the same resource it is in
-    if current_subchannel in indice:
-        indice.remove(current_subchannel)
-
-    return np.random.choice(indice)
 
 # Function to update the resource map based on neighboring transmissions and collisions
 def update_resource_maps(attempted_transmissions, failed_vehicles):
@@ -106,7 +70,8 @@ for subframe in tqdm(range(num_subframes), desc="Processing", ncols=100):
         if subframe == info['next_selection_frame']:
             if info['sps_counter'] == 0:
                 # Randomly reselect subchannel if the interval has elapsed
-                info['current_subchannel'] = select_least_used_subchannel(subframe,info['current_subchannel'],info['resource_map'])
+                info['current_subchannel'] = f.select_least_used_subchannel(subframe,info['current_subchannel'],
+                                                                                info['resource_map'], threshold)
                 info['sps_interval'] = np.random.randint(sps_interval_range)
     
             info['sps_counter'] -= 1

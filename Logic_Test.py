@@ -3,7 +3,7 @@ import random
 # Constants
 NUM_STATIONS = 10      # Number of communication stations
 COMRANGE= 3         # Communication radius (3 neighbors on each side)
-NUM_CHANNELS = 12     # Available channels
+NUM_CHANNELS = 15     # Available channels
 from fractions import Fraction
 
 station_info = {}
