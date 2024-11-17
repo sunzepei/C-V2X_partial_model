@@ -41,6 +41,9 @@ for vehicle in range(num_vehicles):
         'resource_map': np.zeros((num_subchannels, sliding_window_size), dtype=np.uint8)  
         }
 
+for vehicle, info in vehicles_info.items():
+    print(f"Vehicle {vehicle} neighbors: {info['neighbors']}")
+
 total_neighbors = sum(len(info['neighbors']) for info in vehicles_info.values()) - num_vehicles
 
 
@@ -61,7 +64,7 @@ for subframe in tqdm(range(num_subframes), desc="Processing", ncols=100):
             else:
                 pass
 
-            f.update_neighbors(vehicle, info['current_subchannel'], vehicles_info)
+            f.update_neighbors(vehicle, info['current_subchannel'], vehicles_info,subframe, sliding_window_size)
             info['sps_counter'] -= 1
             info['next_selection_frame'] = subframe + 1
 

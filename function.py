@@ -24,6 +24,7 @@ def pick_value_least(value_list, threshold):
 
     return indices
 
+
 def choose_subchannel(current_subchannel,resource_map,threshold):
     """
     Choose a subchannel for the vehicle based on its local resource map.
@@ -36,15 +37,21 @@ def choose_subchannel(current_subchannel,resource_map,threshold):
     return np.random.choice(indice) # Pick randomly among the least used
 
 
-def update_neighbors(vehicle, subchannel, vehicles_info):
+def update_neighbors(vehicle, subchannel, vehicles_info,current_subframe, sliding_window_size):
     """
     Inform the neighbors of the vehicle's subchannel choice and update their resource maps.
     """
-    for neighbor in vehicles_info[vehicle]['neighbors']:
-        # Shift the sliding window to make room for the latest subframe
-        vehicles_info[neighbor]['resource_map'][:, :-1] = vehicles_info[neighbor]['resource_map'][:, 1:]
-        # Mark the chosen subchannel as used in the latest subframe
-        vehicles_info[neighbor]['resource_map'][subchannel, -1] = 1
+    if current_subframe < sliding_window_size:
+        # Directly update the column corresponding to the current sub-frame
+        for neighbor in vehicles_info[vehicle]['neighbors']:
+            vehicles_info[neighbor]['resource_map'][:, current_subframe] = 0  # Reset current sub-frame
+            vehicles_info[neighbor]['resource_map'][subchannel, current_subframe] = 1  # Mark usage
+    else:
+        # Wrap around for sub-frames beyond the sliding window size
+        subframe_position = current_subframe % sliding_window_size
+        for neighbor in vehicles_info[vehicle]['neighbors']:
+            vehicles_info[neighbor]['resource_map'][:, subframe_position] = 0  # Reset current sub-frame
+            vehicles_info[neighbor]['resource_map'][subchannel, subframe_position] = 1  # Mark usage
 
 
 def package_received(vehicle_transmission,successful_transmissions,station_info):
