@@ -37,3 +37,14 @@ def select_least_used_subchannel(subframe, current_subchannel, resource_map,thre
         indice.remove(current_subchannel)
 
     return np.random.choice(indice)
+
+
+def update_neighbors(vehicle, subchannel, vehicles_info):
+    """
+    Inform the neighbors of the vehicle's subchannel choice and update their resource maps.
+    """
+    for neighbor in vehicles_info[vehicle]['neighbors']:
+        # Shift the sliding window to make room for the latest subframe
+        vehicles_info[neighbor]['resource_map'][:, :-1] = vehicles_info[neighbor]['resource_map'][:, 1:]
+        # Mark the chosen subchannel as used in the latest subframe
+        vehicles_info[neighbor]['resource_map'][subchannel, -1] = 1

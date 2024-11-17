@@ -72,3 +72,6 @@ print(f"The final transmissioj is{transmissions},\n")
 success_num = sum(len(value) for value in transmissions.values())
 
 print(Fraction(success_num, total_neighbors))
+
+def calculate_PRR(success_num, total_neighbors):
+    return Fraction(success_num, total_neighbors)
