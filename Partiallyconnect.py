@@ -15,9 +15,10 @@ import function as f
 num_vehicles = 10
 communication_range = 3 # Number of vehicles ahead and behind within communication range
 num_subchannels = 15
-num_subframes = 200000
+num_subframes = 20000000
 sps_interval_range = (2,7)
 sliding_window_size = 10
+interval = 1
 
 # Variables to store PRR values
 prr_values = []
@@ -30,7 +31,7 @@ for vehicle in range(num_vehicles):
     start_idx = max(0, vehicle - communication_range)
     end_idx = min(num_vehicles - 1, vehicle + communication_range)
     neighbors = list(range(start_idx, end_idx + 1))
-    # neighbors.remove(vehicle)  # Exclude self
+    # neighbors.remove(vehicle)  # Exclude self in the function already
 
     vehicles_info[vehicle] = {
         'neighbors': neighbors,
@@ -78,7 +79,7 @@ for subframe in tqdm(range(num_subframes), desc="Processing", ncols=100):
     success_num = sum(len(value) for value in transmissions.values())
 
     # Step 3: Calculate Packet Delivery Ratio (PDR) every 2000 subframes
-    if subframe % 20 == 0:
+    if subframe % interval == 0:
         prr = f.calculate_PRR(success_num, total_neighbors)
         prr_values.append(prr)
     
