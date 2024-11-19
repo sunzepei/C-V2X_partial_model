@@ -52,8 +52,8 @@ def update_neighbors(vehicle, subchannel, vehicles_info,current_subframe, slidin
             vehicles_info[neighbor]['resource_map'][subchannel, -1] = 1
 
 
-def package_received(vehicle_transmission,successful_transmissions,station_info):
-    for channel, vehicles in vehicle_transmission.items():
+def package_received(attempt_transmission,successful_transmissions,station_info):
+    for channel, vehicles in attempt_transmission.items():
         if  len(vehicles) == 1:
             vehicle = vehicles[0]
             successful_transmissions[vehicle] = station_info[vehicle]['neighbors']

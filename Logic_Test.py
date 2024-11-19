@@ -2,15 +2,15 @@ import random
 
 # Constants
 NUM_STATIONS = 10      # Number of communication stations
-COMRANGE= 3         # Communication radius (3 neighbors on each side)
+COM_RANGE= 3         # Communication radius (3 neighbors on each side)
 NUM_CHANNELS = 15     # Available channels
 from fractions import Fraction
 
 station_info = {}
 
 for vehicle in range(NUM_STATIONS):
-    start_idx = max(0, vehicle - COMRANGE)
-    end_idx = min(NUM_STATIONS - 1, vehicle + COMRANGE)
+    start_idx = max(0, vehicle - COM_RANGE)
+    end_idx = min(NUM_STATIONS - 1, vehicle + COM_RANGE)
     # print(end_idx)
     neighbors = list(range(start_idx, end_idx + 1))
 
@@ -55,7 +55,7 @@ def package_received(vehicle_transmission):
             # Find overlapping part (intersection of all sets)
             exclusive_neighbors = {}
             for vehicle, neighbor_set in sets.items():
-                    # Union of neighbors of all other vehicles
+                # Union of neighbors of all other vehicles
                 others_union = set().union(*(sets[other] for
                                  other in sets.keys() if other != vehicle))
                 # Exclusive neighbors for the current vehicle
