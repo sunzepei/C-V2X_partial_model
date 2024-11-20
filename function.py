@@ -1,29 +1,36 @@
 import numpy as np
 from fractions import Fraction
 
- # Function to pick subchannels with usage below a certain threshold
-def pick_value_least(value_list, threshold):
+#  # Function to pick subchannels with usage below a certain threshold
+# def pick_value_least(value_list, threshold):
+#     value_array = np.array(value_list)
+#     n = len(value_list)
+
+#     # Filtering values and indices
+#     mask = value_array <= threshold
+#     selected_values = value_array[mask].tolist()
+#     indices = np.where(mask)[0].tolist()
+#     num_selected = len(selected_values)
+#     percent = num_selected / n
+
+#     # Adjust the threshold until at least 20% of subchannels are below it
+#     while percent <= 0.2:
+#         threshold += 1
+#         mask = value_array <= threshold
+#         selected_values = value_array[mask].tolist()
+#         indices = np.where(mask)[0].tolist()
+#         num_selected = len(selected_values)
+#         percent = num_selected / n
+
+#     return indices
+
+ # advanced Function to pick subchannels with usage below a certain threshold
+def pick_value_least(value_list, min_percent):
     value_array = np.array(value_list)
     n = len(value_list)
-
-    # Filtering values and indices
-    mask = value_array <= threshold
-    selected_values = value_array[mask].tolist()
-    indices = np.where(mask)[0].tolist()
-    num_selected = len(selected_values)
-    percent = num_selected / n
-
-    # Adjust the threshold until at least 20% of subchannels are below it
-    while percent <= 0.2:
-        threshold += 1
-        mask = value_array <= threshold
-        selected_values = value_array[mask].tolist()
-        indices = np.where(mask)[0].tolist()
-        num_selected = len(selected_values)
-        percent = num_selected / n
-
+    threshold = np.percentile(value_array, min_percent * 100)
+    indices = np.where(value_array <= threshold)[0].tolist()
     return indices
-
 
 def choose_subchannel(current_subchannel,resource_map,threshold):
     """

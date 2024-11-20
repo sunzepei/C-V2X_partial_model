@@ -12,9 +12,9 @@ import matplotlib.pyplot as plt
 from tqdm import tqdm
 import function as f
 # Simulation parameters
-num_vehicles = 10
-communication_range = 3 # Number of vehicles ahead and behind within communication range
-num_subchannels = 15
+num_vehicles = 50
+communication_range = 5 # Number of vehicles ahead and behind within communication range
+num_subchannels = 80
 num_subframes = 3000000
 sps_interval_range = (2,7)
 sliding_window_size = 10
@@ -23,7 +23,7 @@ reselection_probability = 0.2
 # Variables to store PRR values
 prr_values = []
 cumualtive_prr_value = []
-threshold = 3
+min_percent = 0.2
 
 # Initialize vehicle information
 vehicles_info = {}
@@ -66,7 +66,7 @@ for subframe in tqdm(range(num_subframes), desc="Processing", ncols=100):
                 if np.random.rand() < reselection_probability:
                 # Randomly reselect subchannel if the interval has elapsed
                     info['current_subchannel'] = f.choose_subchannel(info['current_subchannel'],
-                                                                            info['resource_map'], threshold)
+                                                                            info['resource_map'], min_percent)
                 info['sps_counter'] = np.random.randint(sps_interval_range[0], sps_interval_range[1])
             else:
                 pass
