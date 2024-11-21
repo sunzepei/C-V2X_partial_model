@@ -6,7 +6,7 @@ import Labo as l
 num_vehicles = 70
 communication_range = 5 # Number of vehicles ahead and behind within communication range
 num_subchannels = 100
-num_subframes = 3000000
+num_subframes = 30000
 sps_interval_range = (2,7)
 counting_interval = 10000
 reselection_probability = 0.2
@@ -77,9 +77,12 @@ for subframe in tqdm(range(num_subframes), desc="Processing", ncols=100):
         prr_values.append(prr)
         cumulative_prr = sum(prr_values) / len(prr_values)
         cumualtive_prr_value.append(cumulative_prr)
-    
     # print(attempted_transmissions)
     # print(total_successful_transmissions)
+for vehicle, info in vehicles_info.items():
+    print(f"Vehicle {vehicle} Resource Map: {info['resource_map']}")
+    print("------------------------------------------------------------")
+
 
 # print(prr_values)
 # Plot PDR over time

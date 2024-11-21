@@ -16,14 +16,6 @@ def pick_value_least(value_array, threshold):
         percent = len(indices) / n
     return indices
 
-#  # advanced Function to pick subchannels with usage below a certain threshold
-# def pick_value_least(value_list, min_percent,threshold):
-#     value_array = np.array(value_list)
-#     indices = np.where(value_array <= threshold)[0].tolist()
-#     if len(indices) < min_percent * len(value_list):
-#         new_threshold = np.percentile(value_array, min_percent * 100)
-#         indices = np.where(value_array <= new_threshold)[0].tolist()
-#     return indices
 
 
 def choose_subchannel(current_subchannel,resource_map,threshold):
@@ -42,7 +34,7 @@ def update_neighbors(vehicle, subchannel, vehicles_info,):
     Inform the neighbors of the vehicle's subchannel choice and update their resource maps.
     """
     for neighbor in vehicles_info[vehicle]['neighbors']:
-        vehicles_info[neighbor]['resource_map'][subchannel] += 1
+        vehicles_info[neighbor]['resource_map'][subchannel] = 0.7*vehicles_info[neighbor]['resource_map'][subchannel] + 1
 
 def package_received(attempt_transmission,successful_transmissions,station_info):
     for channel, vehicles in attempt_transmission.items():
