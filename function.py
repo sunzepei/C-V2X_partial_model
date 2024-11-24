@@ -47,7 +47,7 @@ def choose_subchannel(current_subchannel,resource_map,threshold):
 
 
 def update_neighbors(vehicle, subchannel, vehicles_info,current_subframe, sliding_window_size):
-    """
+    """s
     Inform the neighbors of the vehicle's subchannel choice and update their resource maps.
     """
     if current_subframe < sliding_window_size:

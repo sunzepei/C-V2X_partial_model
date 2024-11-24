@@ -13,9 +13,9 @@ from tqdm import tqdm
 import function as f
 # Simulation parameters
 num_vehicles = 70
-communication_range = 5 # Number of vehicles ahead and behind within communication range
+communication_range = 10 # Number of vehicles ahead and behind within communication range
 num_subchannels = 100
-num_subframes = 3000000
+num_subframes = 2000000
 sps_interval_range = (2,7)
 sliding_window_size = 10
 counting_interval = 100
@@ -44,11 +44,17 @@ for vehicle in range(num_vehicles):
         'resource_map': np.zeros((num_subchannels, sliding_window_size), dtype=np.uint8)  
         }
 
-for vehicle, info in vehicles_info.items():
-    print(f"Vehicle {vehicle} neighbors: {info['neighbors']}")
+# for vehicle, info in vehicles_info.items():
+#     print(f"Vehicle {vehicle} neighbors: {info['neighbors']}")
 
+# for vehicle, info in vehicles_info.items():
+#     print(f"Vehicle {vehicle} SPS_Counter: {info['sps_counter']}")
+
+sum_up = 0
 for vehicle, info in vehicles_info.items():
-    print(f"Vehicle {vehicle} SPS_Counter: {info['sps_counter']}")
+    sum_up = sum_up + len(info['neighbors'])
+print(sum_up - num_vehicles)
+
 
 total_neighbors = sum(len(info['neighbors']) for info in vehicles_info.values()) - num_vehicles
 
