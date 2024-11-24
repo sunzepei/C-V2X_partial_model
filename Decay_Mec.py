@@ -4,9 +4,9 @@ from tqdm import tqdm
 import Labo as l
 # Simulation parameters
 num_vehicles = 70
-communication_range = 5 # Number of vehicles ahead and behind within communication range
+communication_range = 10 # Number of vehicles ahead and behind within communication range
 num_subchannels = 100
-num_subframes = 30000
+num_subframes = 2000000
 sps_interval_range = (2,7)
 counting_interval = 10000
 reselection_probability = 0.2
@@ -15,7 +15,7 @@ prr_values = []
 cumualtive_prr_value = []
 min_percent = 0.2
 threshold = 3
-
+decay_factor = 0.9
 # Initialize vehicle information
 vehicles_info = {}
 for vehicle in range(num_vehicles):
@@ -31,7 +31,7 @@ for vehicle in range(num_vehicles):
         'next_selection_frame': 0,
         'sps_counter': np.random.randint(sps_interval_range[0], sps_interval_range[1]),
         # Local resource map for the last 10 subframes sliding window
-        'resource_map':np.zeros(num_subchannels, dtype=np.uint8) 
+        'resource_map':np.zeros(num_subchannels, dtype=np.float16) 
         }
 
 
@@ -44,6 +44,10 @@ for subframe in tqdm(range(num_subframes), desc="Processing", ncols=100):
     attempted_transmissions = {}  # Track subchannel usage in the current subframe
     successful_transmissions = {}  # Track successful transmissions in the current subframe
     # Allocate subchannels and populate attempted_transmissions
+    for vehicle in vehicles_info:
+        vehicles_info[vehicle]['resource_map'] *= decay_factor
+    
+
     for vehicle, info in vehicles_info.items():
         # print(f"Now is processing vehicle {vehicle}")
          # Handle SPS counter and reselection
@@ -79,9 +83,10 @@ for subframe in tqdm(range(num_subframes), desc="Processing", ncols=100):
         cumualtive_prr_value.append(cumulative_prr)
     # print(attempted_transmissions)
     # print(total_successful_transmissions)
-for vehicle, info in vehicles_info.items():
-    print(f"Vehicle {vehicle} Resource Map: {info['resource_map']}")
-    print("------------------------------------------------------------")
+
+    # for vehicle, info in vehicles_info.items():
+    #     print(f"Vehicle {vehicle} Resource Map: {info['resource_map']}")
+    #     print("------------------------------------------------------------")
 
 
 # print(prr_values)

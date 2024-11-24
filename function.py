@@ -53,12 +53,10 @@ def update_neighbors(vehicle, subchannel, vehicles_info,current_subframe, slidin
     if current_subframe < sliding_window_size:
         # Directly update the column corresponding to the current sub-frame
         for neighbor in vehicles_info[vehicle]['neighbors']:
-            vehicles_info[neighbor]['resource_map'][:, current_subframe] = 0  # Reset current sub-frame
             vehicles_info[neighbor]['resource_map'][subchannel, current_subframe] = 1  # Mark usage
     else:
         subframe_position = current_subframe % sliding_window_size
         for neighbor in vehicles_info[vehicle]['neighbors']:
-            vehicles_info[neighbor]['resource_map'][:, subframe_position] = 0  # Reset current sub-frame
             vehicles_info[neighbor]['resource_map'][subchannel, subframe_position] = 1  # Mark usage
 
 

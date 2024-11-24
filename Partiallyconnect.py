@@ -65,6 +65,11 @@ for subframe in tqdm(range(num_subframes), desc="Processing", ncols=100):
     attempted_transmissions = {}  # Track subchannel usage in the current subframe
     successful_transmissions = {}  # Track successful transmissions in the current subframe
     # Allocate subchannels and populate attempted_transmissions
+    subframe_position = subframe % sliding_window_size
+    for vehicle in vehicles_info:
+        vehicles_info[vehicle]['resource_map'][:, subframe_position] = 0  # Reset current sub-frame
+
+
     for vehicle, info in vehicles_info.items():
         # print(f"Now is processing vehicle {vehicle}")
          # Handle SPS counter and reselection

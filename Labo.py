@@ -34,7 +34,7 @@ def update_neighbors(vehicle, subchannel, vehicles_info,):
     Inform the neighbors of the vehicle's subchannel choice and update their resource maps.
     """
     for neighbor in vehicles_info[vehicle]['neighbors']:
-        vehicles_info[neighbor]['resource_map'][subchannel] = 0.7*vehicles_info[neighbor]['resource_map'][subchannel] + 1
+        vehicles_info[neighbor]['resource_map'][subchannel] += 1
 
 def package_received(attempt_transmission,successful_transmissions,station_info):
     for channel, vehicles in attempt_transmission.items():
