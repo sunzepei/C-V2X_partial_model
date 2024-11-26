@@ -39,25 +39,19 @@ def choose_subchannel(current_subchannel,resource_map,threshold):
     Choose a subchannel for the vehicle based on its local resource map.
     For simplicity, choose the least used subchannel.
     """
-    subchannel_usage = np.sum(resource_map[:, :] > 0, axis=1)
+    subchannel_usage = np.sum(resource_map[:, :], axis=1)
     indice = pick_value_least(subchannel_usage,threshold)
     if current_subchannel in indice:
         indice.remove(current_subchannel)
     return np.random.choice(indice) # Pick randomly among the least used
 
 
-def update_neighbors(vehicle, subchannel, vehicles_info,current_subframe, sliding_window_size):
-    """s
+def update_neighbors(vehicle, subchannel, vehicles_info,subframe_position):
+    """
     Inform the neighbors of the vehicle's subchannel choice and update their resource maps.
     """
-    if current_subframe < sliding_window_size:
-        # Directly update the column corresponding to the current sub-frame
-        for neighbor in vehicles_info[vehicle]['neighbors']:
-            vehicles_info[neighbor]['resource_map'][subchannel, current_subframe] = 1  # Mark usage
-    else:
-        subframe_position = current_subframe % sliding_window_size
-        for neighbor in vehicles_info[vehicle]['neighbors']:
-            vehicles_info[neighbor]['resource_map'][subchannel, subframe_position] = 1  # Mark usage
+    for neighbor in vehicles_info[vehicle]['neighbors']:
+        vehicles_info[neighbor]['resource_map'][subchannel, subframe_position] += 1  # Mark usage
 
 
 
@@ -67,6 +61,19 @@ def package_received(attempt_transmission,successful_transmissions,station_info)
             vehicle = vehicles[0]
             successful_transmissions[vehicle] = station_info[vehicle]['neighbors']
         else:
+            ##This is 
+            # neighbor_sets = {vehicle: set(station_info[vehicle]['neighbors']) for vehicle in vehicles}
+            # neighbor_counts = {}
+
+            # for neighbor_set in neighbor_sets.values():
+            #     for neighbor in neighbor_set:
+            #         neighbor_counts[neighbor] = neighbor_counts.get(neighbor, 0) + 1
+
+            # for vehicle, neighbor_set in neighbor_sets.items():
+            #     unique_neighbors = [neighbor for neighbor in neighbor_set if 
+            #                                     neighbor_counts[neighbor] == 1 and neighbor != vehicle]
+            #     successful_transmissions[vehicle] = unique_neighbors
+                
             all_neighbors = {}
             for vehicle in vehicles:
                 all_neighbors[vehicle] = station_info[vehicle]['neighbors']

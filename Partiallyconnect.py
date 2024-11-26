@@ -16,13 +16,15 @@ num_vehicles = 70
 communication_range = 10 # Number of vehicles ahead and behind within communication range
 num_subchannels = 100
 num_subframes = 2000000
-sps_interval_range = (2,7)
+sps_interval_range = (5,16)
 sliding_window_size = 10
-counting_interval = 100
+counting_interval = 1000
 reselection_probability = 0.2
 # Variables to store PRR values
 prr_values = []
 cumualtive_prr_value = []
+cumulative_prr_sum = 0
+prr_count = 0
 min_percent = 0.2
 threshold = 3
 
@@ -53,7 +55,7 @@ for vehicle in range(num_vehicles):
 sum_up = 0
 for vehicle, info in vehicles_info.items():
     sum_up = sum_up + len(info['neighbors'])
-print(sum_up - num_vehicles)
+print(f"the number of neighbor update is {sum_up - num_vehicles}")
 
 
 total_neighbors = sum(len(info['neighbors']) for info in vehicles_info.values()) - num_vehicles
@@ -83,7 +85,7 @@ for subframe in tqdm(range(num_subframes), desc="Processing", ncols=100):
             else:
                 pass
 
-            f.update_neighbors(vehicle, info['current_subchannel'], vehicles_info,subframe, sliding_window_size)
+            f.update_neighbors(vehicle, info['current_subchannel'], vehicles_info,subframe_position)
             info['sps_counter'] -= 1
             # print(f"the {vehicle} counter is {info['sps_counter']}")
             info['next_selection_frame'] = subframe + 1
@@ -98,10 +100,11 @@ for subframe in tqdm(range(num_subframes), desc="Processing", ncols=100):
     success_num = sum(len(value) for value in transmissions.values())
 
     # Step 3: Calculate Packet Delivery Ratio (PDR) every 2000 subframes
-    if subframe % counting_interval == 0:
+    if subframe % counting_interval == 0 and subframe != 0:
         prr = f.calculate_PRR(success_num, total_neighbors)
-        prr_values.append(prr)
-        cumulative_prr = sum(prr_values) / len(prr_values)
+        cumulative_prr_sum += prr
+        prr_count += 1
+        cumulative_prr = cumulative_prr_sum / prr_count
         cumualtive_prr_value.append(cumulative_prr)
     
     # print(attempted_transmissions)
