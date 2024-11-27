@@ -51,7 +51,7 @@ def update_neighbors(vehicle, subchannel, vehicles_info,subframe_position):
     Inform the neighbors of the vehicle's subchannel choice and update their resource maps.
     """
     for neighbor in vehicles_info[vehicle]['neighbors']:
-        vehicles_info[neighbor]['resource_map'][subchannel, subframe_position] += 1  # Mark usage
+        vehicles_info[neighbor]['resource_map'][subchannel, subframe_position] = 1  # Mark usage
 
 
 
@@ -97,3 +97,13 @@ def package_received(attempt_transmission,successful_transmissions,station_info)
 
 def calculate_PRR(success_num, total_neighbors):
     return Fraction(success_num, total_neighbors)
+
+def store_IPG(transmissions, vehicles_info,subframe):
+    inter_mediate = {key: set(value) for key, value in transmissions.items()}
+    others_union = set().union(*(inter_mediate[other] for
+                                other in inter_mediate.keys()))
+    for  vehicles in others_union:
+        vehicles_info[vehicles][ 'successful_transmissions'].append(subframe)
+
+
+

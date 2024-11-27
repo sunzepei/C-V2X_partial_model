@@ -11,11 +11,12 @@ import numpy as np
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 import function as f
+from scipy.interpolate import interp1d
 # Simulation parameters
-num_vehicles = 70
-communication_range = 10 # Number of vehicles ahead and behind within communication range
-num_subchannels = 100
-num_subframes = 2000000
+num_vehicles = 10
+communication_range = 3 # Number of vehicles ahead and behind within communication range
+num_subchannels = 15
+num_subframes = 200
 sps_interval_range = (5,16)
 sliding_window_size = 10
 counting_interval = 1000
@@ -43,7 +44,8 @@ for vehicle in range(num_vehicles):
         'next_selection_frame': 0,
         'sps_counter': np.random.randint(sps_interval_range[0], sps_interval_range[1]),
         # Local resource map for the last 10 subframes sliding window
-        'resource_map': np.zeros((num_subchannels, sliding_window_size), dtype=np.uint8)  
+        'resource_map': np.zeros((num_subchannels, sliding_window_size), dtype=np.uint8),
+        'successful_transmissions': []  # List to track successful transmission subframe
         }
 
 # for vehicle, info in vehicles_info.items():
@@ -67,6 +69,7 @@ for subframe in tqdm(range(num_subframes), desc="Processing", ncols=100):
     attempted_transmissions = {}  # Track subchannel usage in the current subframe
     successful_transmissions = {}  # Track successful transmissions in the current subframe
     # Allocate subchannels and populate attempted_transmissions
+
     subframe_position = subframe % sliding_window_size
     for vehicle in vehicles_info:
         vehicles_info[vehicle]['resource_map'][:, subframe_position] = 0  # Reset current sub-frame
@@ -99,6 +102,7 @@ for subframe in tqdm(range(num_subframes), desc="Processing", ncols=100):
     transmissions = f.package_received(attempted_transmissions,successful_transmissions,vehicles_info)
     success_num = sum(len(value) for value in transmissions.values())
 
+    f.store_IPG(transmissions, vehicles_info,subframe)
     # Step 3: Calculate Packet Delivery Ratio (PDR) every 2000 subframes
     if subframe % counting_interval == 0 and subframe != 0:
         prr = f.calculate_PRR(success_num, total_neighbors)
@@ -110,13 +114,49 @@ for subframe in tqdm(range(num_subframes), desc="Processing", ncols=100):
     # print(attempted_transmissions)
     # print(total_successful_transmissions)
 
+
+for vehicle, info in vehicles_info.items():
+    print(f"Vehicle {vehicle} successful transmissions): {info['successful_transmissions']}")
+          
+# ipg_list = []
+# # Calculate IPG for each vehicle
+# for vehicle, info in vehicles_info.items():
+#     # print(info['sps_counter'])
+#     successful_transmissions = info['successful_transmissions']
+#     # print(f'{vehicle}: {successful_transmissions}')
+#     for i in range(1, len(successful_transmissions)):
+#         ipg = successful_transmissions[i] - successful_transmissions[i - 1]
+#         ipg_list.append(ipg)
+
+# # Calculate the CCDF for IPG
+# ipg_array = np.array(ipg_list)
+# ipg_sorted = np.sort(ipg_array) * 100  # Convert sub-frames to milliseconds (assuming 1 sub-frame = 100 ms)
+# unique_value, counts = np.unique(ipg_sorted, return_counts= True)
+
+# cdf = np.cumsum(counts)/len(ipg_sorted)
+# ccdf = 1 - cdf
+# target_ccdf = 10 ** -5
+# interpolator = interp1d(ccdf, unique_value, fill_value="extrapolate")
+# x_value_at_target_ccdf = interpolator(target_ccdf)
+# print(f"X-axis value at CCDF = 10^-5 : {x_value_at_target_ccdf}")
+
+# # Plotting the CCDF of IPG
+# plt.figure(figsize=(15, 8))
+# plt.plot(unique_value, ccdf, label='CCDF of IPG')
+# plt.xlabel('Inter-Packet Gap (IPG) [ms]')
+# plt.ylabel('CCDF')
+# plt.yscale('log')  # Set y-axis to logarithmic scale
+# plt.title('CCDF of Inter-Packet Gap (IPG)')
+# plt.legend()
+# plt.grid(True)
+
 # print(prr_values)
 # Plot PDR over time
-plt.figure(figsize=(10, 6))
-plt.plot(cumualtive_prr_value, label='PRR over Time')
-plt.xlabel('Number of PRR values')
-plt.ylabel('Packet Received Ratio (PRR)')
-plt.title('PRR Trend Over Time')
-plt.legend()
-plt.grid(True)
-plt.show()
+# plt.figure(figsize=(10, 6))
+# plt.plot(cumualtive_prr_value, label='PRR over Time')
+# plt.xlabel('Number of PRR values')
+# plt.ylabel('Packet Received Ratio (PRR)')
+# plt.title('PRR Trend Over Time')
+# plt.legend()
+# plt.grid(True)
+# plt.show()
