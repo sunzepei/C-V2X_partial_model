@@ -13,10 +13,10 @@ from tqdm import tqdm
 import function as f
 from scipy.interpolate import interp1d
 # Simulation parameters
-num_vehicles = 10
-communication_range = 3 # Number of vehicles ahead and behind within communication range
-num_subchannels = 5
-num_subframes = 100
+num_vehicles = 70
+communication_range = 10 # Number of vehicles ahead and behind within communication range
+num_subchannels = 100
+num_subframes = 2000000
 sps_interval_range = (5,16)
 sliding_window_size = 10
 counting_interval = 1000
@@ -44,8 +44,17 @@ for vehicle in range(num_vehicles):
         'next_selection_frame': 0,
         'sps_counter': np.random.randint(sps_interval_range[0], sps_interval_range[1]),
         # Local resource map for the last 10 subframes sliding window
-        'resource_map': np.zeros((num_subchannels, sliding_window_size), dtype=np.uint8),
+        'resource_map': np.zeros((num_subchannels, sliding_window_size), dtype=np.uint8)
         }
+
+# Initial the Storage of the data for vehicles
+data = {
+    33: {neighbor: [] for neighbor in range(23, 44)},  # Neighbors for transmitter 33 are 23 to 43
+    34: {neighbor: [] for neighbor in range(24, 45)},  # Example: Neighbors for transmitter 34
+    35: {neighbor: [] for neighbor in range(25, 46)},  # Example: Neighbors for transmitter 35
+    36: {neighbor: [] for neighbor in range(26, 47)},  # Example: Neighbors for transmitter 36
+    37: {neighbor: [] for neighbor in range(27, 48)},  # Example: Neighbors for transmitter 37
+}
 
 # for vehicle, info in vehicles_info.items():
 #     print(f"Vehicle {vehicle} neighbors: {info['neighbors']}")
@@ -101,7 +110,6 @@ for subframe in tqdm(range(num_subframes), desc="Processing", ncols=100):
     transmissions = f.package_received(attempted_transmissions,successful_transmissions,vehicles_info)
     success_num = sum(len(value) for value in transmissions.values())
 
-    f.store_IPG(transmissions, vehicles_info,subframe)
     # Step 3: Calculate Packet Delivery Ratio (PDR) every 2000 subframes
     if subframe % counting_interval == 0 and subframe != 0:
         prr = f.calculate_PRR(success_num, total_neighbors)
@@ -112,7 +120,7 @@ for subframe in tqdm(range(num_subframes), desc="Processing", ncols=100):
     
     # print(attempted_transmissions)
     # print(transmissions)
-
+    f.IPGModel_Berry(transmissions, data, subframe)
 
 # for vehicle, info in vehicles_info.items():
 #     print(f"Vehicle {vehicle} successful transmissions): {info['successful_transmissions']}")

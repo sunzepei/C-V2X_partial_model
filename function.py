@@ -61,20 +61,7 @@ def package_received(attempt_transmission,successful_transmissions,station_info)
         if  len(vehicles) == 1:
             vehicle = vehicles[0]
             successful_transmissions[vehicle] = station_info[vehicle]['neighbors']
-        else:
-            ##This is 
-            # neighbor_sets = {vehicle: set(station_info[vehicle]['neighbors']) for vehicle in vehicles}
-            # neighbor_counts = {}
-
-            # for neighbor_set in neighbor_sets.values():
-            #     for neighbor in neighbor_set:
-            #         neighbor_counts[neighbor] = neighbor_counts.get(neighbor, 0) + 1
-
-            # for vehicle, neighbor_set in neighbor_sets.items():
-            #     unique_neighbors = [neighbor for neighbor in neighbor_set if 
-            #                                     neighbor_counts[neighbor] == 1 and neighbor != vehicle]
-            #     successful_transmissions[vehicle] = unique_neighbors
-                
+        else:     
             all_neighbors = {}
             for vehicle in vehicles:
                 all_neighbors[vehicle] = station_info[vehicle]['neighbors']
@@ -108,8 +95,13 @@ def store_IPG(transmissions, vehicles_info,subframe):
 
 
 
-def IPGModel_Berry(transmissions, vehicles_info,subframe):
-    
+def IPGModel_Berry(transmissions, data, subframe):
+    vehicles = [33, 34, 35, 36, 37]
+    for vehicle in vehicles:
+        neighbors = transmissions[vehicle]
+        for neighbor in neighbors:
+            data[vehicle][neighbor].append(subframe)
+    return data
 
 
 

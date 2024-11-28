@@ -11,15 +11,18 @@
 #                                  other in inter_mediate.keys()))
 # print(others_union)
 
-
-# Create a dictionary of dictionaries
-dic = {
-    1: {"name": "Alice", "age": 25},
-    2: {"name": "Bob", "age": 30},
-    3: {"name": "Charlie", "age": 35}
+# Data structure
+data = {
+    33: {neighbor: [] for neighbor in range(20)},  # 20 neighbors for transmitter 33
+    34: {neighbor: [] for neighbor in range(20)},  # 20 neighbors for transmitter 34
+    35: {neighbor: [] for neighbor in range(20)},  # 20 neighbors for transmitter 35
+    36: {neighbor: [] for neighbor in range(20)},  # 20 neighbors for transmitter 36
+    37: {neighbor: [] for neighbor in range(20)},  # 20 neighbors for transmitter 37
 }
 
-# Accessing nested dictionaries using numeric keys
-print(dic[1])  # Output: {'name': 'Alice', 'age': 25}
-print(dic[2]["name"])  # Output: Bob
-print(dic[3]["age"])  # Output: 35
+# Example: Add sub-frame data
+data[33][1].append(10)  # Neighbor 1 of transmitter 33 received at sub-frame 10
+data[33][1].append(12)  # Neighbor 1 of transmitter 33 received at sub-frame 12
+data[34][1].append(15)  # Neighbor 1 of transmitter 34 received at sub-frame 15
+
+neighbor_1_transmitter_33 = data[33][1]
