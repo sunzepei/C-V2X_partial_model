@@ -1,6 +1,7 @@
 import numpy as np
 from fractions import Fraction
 
+
  # Function to pick subchannels with usage below a certain threshold
 def pick_value_least(value_list, threshold):
     value_array = np.array(value_list)
@@ -104,6 +105,18 @@ def store_IPG(transmissions, vehicles_info,subframe):
                                 other in inter_mediate.keys()))
     for  vehicles in others_union:
         vehicles_info[vehicles][ 'successful_transmissions'].append(subframe)
+
+
+
+def IPGModel_Berry(transmissions, vehicles_info,subframe):
+    
+
+
+
+
+
+
+
 
 
 

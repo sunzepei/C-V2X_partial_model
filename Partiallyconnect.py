@@ -15,8 +15,8 @@ from scipy.interpolate import interp1d
 # Simulation parameters
 num_vehicles = 10
 communication_range = 3 # Number of vehicles ahead and behind within communication range
-num_subchannels = 15
-num_subframes = 200
+num_subchannels = 5
+num_subframes = 100
 sps_interval_range = (5,16)
 sliding_window_size = 10
 counting_interval = 1000
@@ -45,7 +45,6 @@ for vehicle in range(num_vehicles):
         'sps_counter': np.random.randint(sps_interval_range[0], sps_interval_range[1]),
         # Local resource map for the last 10 subframes sliding window
         'resource_map': np.zeros((num_subchannels, sliding_window_size), dtype=np.uint8),
-        'successful_transmissions': []  # List to track successful transmission subframe
         }
 
 # for vehicle, info in vehicles_info.items():
@@ -112,11 +111,11 @@ for subframe in tqdm(range(num_subframes), desc="Processing", ncols=100):
         cumualtive_prr_value.append(cumulative_prr)
     
     # print(attempted_transmissions)
-    # print(total_successful_transmissions)
+    # print(transmissions)
 
 
-for vehicle, info in vehicles_info.items():
-    print(f"Vehicle {vehicle} successful transmissions): {info['successful_transmissions']}")
+# for vehicle, info in vehicles_info.items():
+#     print(f"Vehicle {vehicle} successful transmissions): {info['successful_transmissions']}")
           
 # ipg_list = []
 # # Calculate IPG for each vehicle
