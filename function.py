@@ -1,7 +1,7 @@
 import numpy as np
 from fractions import Fraction
-
-
+from scipy.interpolate import interp1d
+import matplotlib.pyplot as plt
  # Function to pick subchannels with usage below a certain threshold
 def pick_value_least(value_list, threshold):
     value_array = np.array(value_list)
@@ -83,6 +83,7 @@ def package_received(attempt_transmission,successful_transmissions,station_info)
             values.remove(key)  # This removes the vehicle from its neighbor list in place
     return  successful_transmissions
 
+
 def calculate_PRR(success_num, total_neighbors):
     return Fraction(success_num, total_neighbors)
 
@@ -95,20 +96,79 @@ def store_IPG(transmissions, vehicles_info,subframe):
 
 
 
-def IPGModel_Berry(transmissions, data, subframe):
+def IPGModel_Berry(transmissions,IPG_Storage , subframe):
     vehicles = [33, 34, 35, 36, 37]
     for vehicle in vehicles:
         neighbors = transmissions[vehicle]
         for neighbor in neighbors:
-            data[vehicle][neighbor].append(subframe)
-    return data
+            IPG_Storage[vehicle][neighbor].append(subframe)
 
 
 
+def calculate_IPG(IPG_Storage):
+    ipg_data = {}
+    # Calculate IPG for each vehicle
+    for transmitter, neighbors in IPG_Storage.items():
+        if transmitter not in ipg_data:
+            ipg_data[transmitter] = {}
+        for neighbor,sub_frame in neighbors.items():
+            ipg_list = []
+            for i in range(1, len(sub_frame)):
+                ipg = sub_frame[i] - sub_frame[i - 1]
+                ipg_list.append(ipg)
+            ipg_data[transmitter][neighbor] = ipg_list
+        # print(info['sps_counter'])
+    return ipg_data
+
+def merge_ipg_data(ipg_data):
+    merged_list = []
+    for transmitter, neighbors in ipg_data.items():
+        for neighbor, ipg_list in neighbors.items():
+            merged_list.extend(ipg_list)  # Add all elements from the IPG list
+    return merged_list
+
+def calculate_IPG_tail(ipg_list):
+    # Calculate the CCDF for IPG
+    ipg_array = np.array(ipg_list)
+    ipg_sorted = np.sort(ipg_array) * 100  # Convert sub-frames to milliseconds (assuming 1 sub-frame = 100 ms)
+    unique_value, counts = np.unique(ipg_sorted, return_counts= True)
+
+    cdf = np.cumsum(counts)/len(ipg_sorted)
+    ccdf = 1 - cdf
+    target_ccdf = 10 ** -5
+    interpolator = interp1d(ccdf, unique_value, fill_value="extrapolate")
+    x_value_at_target_ccdf = interpolator(target_ccdf)
+    print(f"X-axis value at CCDF = 10^-5 : {x_value_at_target_ccdf}")
+    return unique_value, ccdf
+
+def neighbor_values(vehicles_info,num_vehicles):
+    sum_up = 0
+    for vehicle, info in vehicles_info.items():
+        sum_up = sum_up + len(info['neighbors'])
+    print(f"the number of neighbor update is {sum_up - num_vehicles}")
+
+
+# # Plotting the CCDF of IPG
+def plot_IPG(unique_value, ccdf):
+    plt.figure(figsize=(15, 8))
+    plt.plot(unique_value, ccdf, label='CCDF of IPG')
+    plt.xlabel('Inter-Packet Gap (IPG) [ms]')
+    plt.ylabel('CCDF')
+    plt.yscale('log')  # Set y-axis to logarithmic scale
+    plt.title('CCDF of Inter-Packet Gap (IPG)')
+    plt.legend()
+    plt.grid(True)
 
 
 
-
-
-
+def plot_PRR(cumulative_prr_value):
+    # Plot PDR over time
+    plt.figure(figsize=(10, 6))
+    plt.plot(cumulative_prr_value, label='PRR over Time')
+    plt.xlabel('Number of PRR values')
+    plt.ylabel('Packet Received Ratio (PRR)')
+    plt.title('PRR Trend Over Time')
+    plt.legend()
+    plt.grid(True)
+    plt.show()
 

@@ -23,7 +23,7 @@ counting_interval = 1000
 reselection_probability = 0.2
 # Variables to store PRR values
 prr_values = []
-cumualtive_prr_value = []
+cumulative_prr_value = []
 cumulative_prr_sum = 0
 prr_count = 0
 min_percent = 0.2
@@ -48,7 +48,7 @@ for vehicle in range(num_vehicles):
         }
 
 # Initial the Storage of the data for vehicles
-data = {
+IPG_Storage = {
     33: {neighbor: [] for neighbor in range(23, 44)},  # Neighbors for transmitter 33 are 23 to 43
     34: {neighbor: [] for neighbor in range(24, 45)},  # Example: Neighbors for transmitter 34
     35: {neighbor: [] for neighbor in range(25, 46)},  # Example: Neighbors for transmitter 35
@@ -62,10 +62,7 @@ data = {
 # for vehicle, info in vehicles_info.items():
 #     print(f"Vehicle {vehicle} SPS_Counter: {info['sps_counter']}")
 
-sum_up = 0
-for vehicle, info in vehicles_info.items():
-    sum_up = sum_up + len(info['neighbors'])
-print(f"the number of neighbor update is {sum_up - num_vehicles}")
+
 
 
 total_neighbors = sum(len(info['neighbors']) for info in vehicles_info.values()) - num_vehicles
@@ -89,7 +86,7 @@ for subframe in tqdm(range(num_subframes), desc="Processing", ncols=100):
         if subframe == info['next_selection_frame']:
             if info['sps_counter'] <= 0:
                 if np.random.rand() < reselection_probability:
-                # Randomly reselect subchannel if the interval has elapsed
+                # Randomly reselrect subchannel if the interval has elapsed
                     info['current_subchannel'] = f.choose_subchannel(info['current_subchannel'],
                                                                             info['resource_map'],threshold)
                 info['sps_counter'] = np.random.randint(sps_interval_range[0], sps_interval_range[1])
@@ -116,54 +113,18 @@ for subframe in tqdm(range(num_subframes), desc="Processing", ncols=100):
         cumulative_prr_sum += prr
         prr_count += 1
         cumulative_prr = cumulative_prr_sum / prr_count
-        cumualtive_prr_value.append(cumulative_prr)
+        cumulative_prr_value.append(cumulative_prr)
     
     # print(attempted_transmissions)
     # print(transmissions)
-    f.IPGModel_Berry(transmissions, data, subframe)
+    f.IPGModel_Berry(transmissions, IPG_Storage, subframe)
 
 # for vehicle, info in vehicles_info.items():
 #     print(f"Vehicle {vehicle} successful transmissions): {info['successful_transmissions']}")
-          
-# ipg_list = []
-# # Calculate IPG for each vehicle
-# for vehicle, info in vehicles_info.items():
-#     # print(info['sps_counter'])
-#     successful_transmissions = info['successful_transmissions']
-#     # print(f'{vehicle}: {successful_transmissions}')
-#     for i in range(1, len(successful_transmissions)):
-#         ipg = successful_transmissions[i] - successful_transmissions[i - 1]
-#         ipg_list.append(ipg)
 
-# # Calculate the CCDF for IPG
-# ipg_array = np.array(ipg_list)
-# ipg_sorted = np.sort(ipg_array) * 100  # Convert sub-frames to milliseconds (assuming 1 sub-frame = 100 ms)
-# unique_value, counts = np.unique(ipg_sorted, return_counts= True)
 
-# cdf = np.cumsum(counts)/len(ipg_sorted)
-# ccdf = 1 - cdf
-# target_ccdf = 10 ** -5
-# interpolator = interp1d(ccdf, unique_value, fill_value="extrapolate")
-# x_value_at_target_ccdf = interpolator(target_ccdf)
-# print(f"X-axis value at CCDF = 10^-5 : {x_value_at_target_ccdf}")
-
-# # Plotting the CCDF of IPG
-# plt.figure(figsize=(15, 8))
-# plt.plot(unique_value, ccdf, label='CCDF of IPG')
-# plt.xlabel('Inter-Packet Gap (IPG) [ms]')
-# plt.ylabel('CCDF')
-# plt.yscale('log')  # Set y-axis to logarithmic scale
-# plt.title('CCDF of Inter-Packet Gap (IPG)')
-# plt.legend()
-# plt.grid(True)
-
-# print(prr_values)
-# Plot PDR over time
-# plt.figure(figsize=(10, 6))
-# plt.plot(cumualtive_prr_value, label='PRR over Time')
-# plt.xlabel('Number of PRR values')
-# plt.ylabel('Packet Received Ratio (PRR)')
-# plt.title('PRR Trend Over Time')
-# plt.legend()
-# plt.grid(True)
-# plt.show()
+ipg_data = f.calculate_IPG(IPG_Storage)
+merged_list = f.merge_ipg_data(ipg_data)
+unique_value, ccdf = f.calculate_IPG_tail(merged_list)
+f.plot_IPG(unique_value, ccdf)
+f.plot_PRR(cumulative_prr_value)
