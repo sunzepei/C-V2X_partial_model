@@ -130,6 +130,7 @@ def merge_ipg_data(ipg_data):
 def calculate_IPG_tail(ipg_list):
     # Calculate the CCDF for IPG
     ipg_array = np.array(ipg_list)
+    ipg_100ms_prob = np.sum(ipg_array == 1) / len(ipg_array)
     ipg_sorted = np.sort(ipg_array) * 100  # Convert sub-frames to milliseconds (assuming 1 sub-frame = 100 ms)
     unique_value, counts = np.unique(ipg_sorted, return_counts= True)
 
@@ -139,6 +140,7 @@ def calculate_IPG_tail(ipg_list):
     interpolator = interp1d(ccdf, unique_value, fill_value="extrapolate")
     x_value_at_target_ccdf = interpolator(target_ccdf)
     print(f"X-axis value at CCDF = 10^-5 : {x_value_at_target_ccdf}")
+    print("Probability of 100ms IPG:", ipg_100ms_prob)
     return unique_value, ccdf
 
 def neighbor_values(vehicles_info,num_vehicles):
