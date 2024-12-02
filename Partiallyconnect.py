@@ -16,7 +16,7 @@ from scipy.interpolate import interp1d
 num_vehicles = 70
 communication_range = 10 # Number of vehicles ahead and behind within communication range
 num_subchannels = 100
-num_subframes = 2000000
+num_subframes = 200000
 sps_interval_range = (5,16)
 sliding_window_size = 10
 counting_interval = 1000
@@ -28,7 +28,7 @@ cumulative_prr_sum = 0
 prr_count = 0
 min_percent = 0.2
 threshold = 3
-
+vehicles_index = [33, 34, 35, 36, 37]
 # Initialize vehicle information
 vehicles_info = {}
 for vehicle in range(num_vehicles):
@@ -44,7 +44,8 @@ for vehicle in range(num_vehicles):
         'next_selection_frame': 0,
         'sps_counter': np.random.randint(sps_interval_range[0], sps_interval_range[1]),
         # Local resource map for the last 10 subframes sliding window
-        'resource_map': np.zeros((num_subchannels, sliding_window_size), dtype=np.uint8)
+        'resource_map': np.zeros((num_subchannels, sliding_window_size), dtype=np.uint8),
+        'last_update': 0,
         }
 
 # Initial the Storage of the data for vehicles
@@ -56,6 +57,23 @@ IPG_Storage = {
     37: {neighbor: [] for neighbor in range(27, 48)},  # Example: Neighbors for transmitter 37
 }
 
+# Initial the Storage of the Latest Updated Subframe for vehicles
+Last_update_Storage = {
+    33: {neighbor: 0 for neighbor in range(23, 44)},  # Neighbors for transmitter 33 are 23 to 43
+    34: {neighbor: 0 for neighbor in range(24, 45)},  # Example: Neighbors for transmitter 34
+    35: {neighbor: 0 for neighbor in range(25, 46)},  # Example: Neighbors for transmitter 35
+    36: {neighbor: 0 for neighbor in range(26, 47)},  # Example: Neighbors for transmitter 36
+    37: {neighbor: 0 for neighbor in range(27, 48)},  # Example: Neighbors for transmitter 37
+}
+
+# Initial the Storage of the AOI for vehicles
+AOI_Storage = {
+    33: {neighbor: [] for neighbor in range(23, 44)},  # Neighbors for transmitter 33 are 23 to 43
+    34: {neighbor: [] for neighbor in range(24, 45)},  # Example: Neighbors for transmitter 34
+    35: {neighbor: [] for neighbor in range(25, 46)},  # Example: Neighbors for transmitter 35
+    36: {neighbor: [] for neighbor in range(26, 47)},  # Example: Neighbors for transmitter 36
+    37: {neighbor: [] for neighbor in range(27, 48)},  # Example: Neighbors for transmitter 37
+}
 # for vehicle, info in vehicles_info.items():
 #     print(f"Vehicle {vehicle} neighbors: {info['neighbors']}")
 
@@ -117,14 +135,19 @@ for subframe in tqdm(range(num_subframes), desc="Processing", ncols=100):
     
     # print(attempted_transmissions)
     # print(transmissions)
-    f.IPGModel_Berry(transmissions, IPG_Storage, subframe)
-
-# for vehicle, info in vehicles_info.items():
+    f.IPGModel_Berry(transmissions, IPG_Storage, subframe,vehicles_index)
+    f.AOI_last_update(Last_update_Storage,subframe,transmissions,vehicles_index)
+    f.AOI_model(Last_update_Storage,subframe,AOI_Storage)# for vehicle, info in vehicles_info.items():
 #     print(f"Vehicle {vehicle} successful transmissions): {info['successful_transmissions']}")
 
 
 ipg_data = f.calculate_IPG(IPG_Storage)
-merged_list = f.merge_ipg_data(ipg_data)
-unique_value, ccdf = f.calculate_IPG_tail(merged_list)
-f.plot_IPG(unique_value, ccdf)
+merged_ipg_list = f.merge_data(ipg_data)
+unique_ipg_value,ipg_ccdf = f.calculate_tail(merged_ipg_list)
+
+merge_aoi_list = f.merge_data(AOI_Storage)
+unique_aoi_value, aoi_ccdf = f.calculate_tail(merge_aoi_list)
+
+f.plot_ipg_tail(unique_ipg_value, ipg_ccdf)
+f.plot_aoi_tail(unique_aoi_value, aoi_ccdf)
 f.plot_PRR(cumulative_prr_value)

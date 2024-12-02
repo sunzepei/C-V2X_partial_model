@@ -84,25 +84,32 @@ def package_received(attempt_transmission,successful_transmissions,station_info)
     return  successful_transmissions
 
 
+
 def calculate_PRR(success_num, total_neighbors):
     return Fraction(success_num, total_neighbors)
 
-def store_IPG(transmissions, vehicles_info,subframe):
-    inter_mediate = {key: set(value) for key, value in transmissions.items()}
-    others_union = set().union(*(inter_mediate[other] for
-                                other in inter_mediate.keys()))
-    for  vehicles in others_union:
-        vehicles_info[vehicles][ 'successful_transmissions'].append(subframe)
 
 
-
-def IPGModel_Berry(transmissions,IPG_Storage , subframe):
-    vehicles = [33, 34, 35, 36, 37]
-    for vehicle in vehicles:
+def IPGModel_Berry(transmissions,IPG_Storage , subframe,vehicles_index):
+    for vehicle in vehicles_index:
         neighbors = transmissions[vehicle]
         for neighbor in neighbors:
             IPG_Storage[vehicle][neighbor].append(subframe)
 
+
+
+def AOI_last_update(Last_update_Storage,subframe,transmissions,vehicles_index):
+    for vehicle in vehicles_index:
+        neighbors = transmissions[vehicle]
+        for neighbor in neighbors:
+            Last_update_Storage[vehicle][neighbor] = subframe
+
+
+
+def AOI_model(Last_update_Storage,subframe,AOI_Storage):
+    for vehicle, neighbors in Last_update_Storage.items():
+        for neighbor, last_update in neighbors.items():
+            AOI_Storage[vehicle][neighbor].append(subframe - last_update)
 
 
 def calculate_IPG(IPG_Storage):
@@ -120,16 +127,18 @@ def calculate_IPG(IPG_Storage):
         # print(info['sps_counter'])
     return ipg_data
 
-def merge_ipg_data(ipg_data):
+
+def merge_data(ipg_data):
     merged_list = []
     for transmitter, neighbors in ipg_data.items():
         for neighbor, ipg_list in neighbors.items():
             merged_list.extend(ipg_list)  # Add all elements from the IPG list
     return merged_list
 
-def calculate_IPG_tail(ipg_list):
+
+def calculate_tail(data_list):
     # Calculate the CCDF for IPG
-    ipg_array = np.array(ipg_list)
+    ipg_array = np.array(data_list)
     ipg_100ms_prob = np.sum(ipg_array == 1) / len(ipg_array)
     ipg_sorted = np.sort(ipg_array) * 100  # Convert sub-frames to milliseconds (assuming 1 sub-frame = 100 ms)
     unique_value, counts = np.unique(ipg_sorted, return_counts= True)
@@ -143,6 +152,7 @@ def calculate_IPG_tail(ipg_list):
     print("Probability of 100ms IPG:", ipg_100ms_prob)
     return unique_value, ccdf
 
+
 def neighbor_values(vehicles_info,num_vehicles):
     sum_up = 0
     for vehicle, info in vehicles_info.items():
@@ -150,8 +160,10 @@ def neighbor_values(vehicles_info,num_vehicles):
     print(f"the number of neighbor update is {sum_up - num_vehicles}")
 
 
+
+
 # # Plotting the CCDF of IPG
-def plot_IPG(unique_value, ccdf):
+def plot_ipg_tail(unique_value, ccdf):
     plt.figure(figsize=(15, 8))
     plt.plot(unique_value, ccdf, label='CCDF of IPG')
     plt.xlabel('Inter-Packet Gap (IPG) [ms]')
@@ -161,6 +173,15 @@ def plot_IPG(unique_value, ccdf):
     plt.legend()
     plt.grid(True)
 
+def plot_aoi_tail(unique_value, ccdf):
+    plt.figure(figsize=(15, 8))
+    plt.plot(unique_value, ccdf, label='CCDF of AOI')
+    plt.xlabel('Age of information [ms]')
+    plt.ylabel('CCDF')
+    plt.yscale('log')  # Set y-axis to logarithmic scale
+    plt.title('CCDF of Age of Information (AOI)')
+    plt.legend()
+    plt.grid(True)
 
 
 def plot_PRR(cumulative_prr_value):
