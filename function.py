@@ -156,8 +156,7 @@ def calculate_ipg_tail(data_list):
 def calculate_aoi_tail(data_list):
     # Calculate the CCDF for IPG
     aoi_array = np.array(data_list)
-    aoi_array = aoi_array + 1
-    aoi_0ms_prob = np.sum(aoi_array == 1) / len(aoi_array)
+    aoi_0ms_prob = np.sum(aoi_array == 0) / len(aoi_array)
     aoi_sorted = np.sort(aoi_array) * 100  # Convert sub-frames to milliseconds (assuming 1 sub-frame = 100 ms)
     unique_value, counts = np.unique(aoi_sorted, return_counts= True)
     print(aoi_array)

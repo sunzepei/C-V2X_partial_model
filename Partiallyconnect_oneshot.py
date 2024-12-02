@@ -18,6 +18,7 @@ communication_range = 10 # Number of vehicles ahead and behind within communicat
 num_subchannels = 100
 num_subframes = 2000000
 sps_interval_range = (5,16)
+one_shot_range = (2,7)  # Range for the one-shot counter
 sliding_window_size = 10
 counting_interval = 1000
 reselection_probability = 0.2
@@ -41,11 +42,13 @@ for vehicle in range(num_vehicles):
     vehicles_info[vehicle] = {
         'neighbors': neighbors,
         'current_subchannel': np.random.choice(num_subchannels),
+        'original_subchannel': None,  # Original subchannel before one-shot
         'next_selection_frame': 0,
         'sps_counter': np.random.randint(sps_interval_range[0], sps_interval_range[1]),
+        'one_shot_counter': np.random.randint(one_shot_range[0], one_shot_range[1]),
+        'use_one_shot': False,  # Flag for using one-shot resource
         # Local resource map for the last 10 subframes sliding window
         'resource_map': np.zeros((num_subchannels, sliding_window_size), dtype=np.uint8),
-        'last_update': 0,
         }
 
 # Initial the Storage of the data for vehicles
@@ -99,17 +102,39 @@ for subframe in tqdm(range(num_subframes), desc="Processing", ncols=100):
 
 
     for vehicle, info in vehicles_info.items():
-        # print(f"Now is processing vehicle {vehicle}")
-         # Handle SPS counter and reselection
+        # Check if it's time for the vehicle to reselect a subchannel
         if subframe == info['next_selection_frame']:
-            if info['sps_counter'] <= 0:
-                if np.random.rand() < reselection_probability:
-                # Randomly reselrect subchannel if the interval has elapsed
+            if info['use_one_shot']:
+                # Return to original subchannel after one-shot usage
+                info['current_subchannel'] = info['original_subchannel']
+                info['use_one_shot'] = False
+            elif info['sps_counter'] == 0:  # Cs = 0
+                if np.random.rand() < reselection_probability:  # Change resource
                     info['current_subchannel'] = f.choose_subchannel(info['current_subchannel'],
                                                                             info['resource_map'],threshold)
-                info['sps_counter'] = np.random.randint(sps_interval_range[0], sps_interval_range[1])
-            else:
-                pass
+                    info['sps_counter'] = np.random.randint(sps_interval_range[0],
+                                                             sps_interval_range[1])  # Reassign SPS interval
+                    info['one_shot_counter'] = np.random.randint(one_shot_range[0], one_shot_range[1])
+                else:  # Keep resource
+                    info['sps_counter'] = np.random.randint(sps_interval_range[0],
+                                                             sps_interval_range[1])  # Reassign SPS interval
+                    if info['one_shot_counter'] == 0:  # Co = 0
+                        info['original_subchannel'] = info['current_subchannel']
+                        info['current_subchannel'] = f.choose_subchannel(info['current_subchannel'],
+                                                                            info['resource_map'],threshold)
+                        info['one_shot_counter'] = np.random.randint(one_shot_range[0], one_shot_range[1])
+                        info['use_one_shot'] = True
+                    else:  # Co > 0
+                        pass
+            else:  # Cs > 0
+                if info['one_shot_counter'] == 0:  # Co = 0
+                    info['original_subchannel'] = info['current_subchannel']
+                    info['current_subchannel'] = f.choose_subchannel(info['current_subchannel'],
+                                                                            info['resource_map'],threshold)
+                    info['one_shot_counter'] = np.random.randint(one_shot_range[0], one_shot_range[1])
+                    info['use_one_shot'] = True
+                else:  # Co > 0
+                    pass
 
             f.update_neighbors(vehicle, info['current_subchannel'], vehicles_info,subframe_position)
             info['sps_counter'] -= 1
