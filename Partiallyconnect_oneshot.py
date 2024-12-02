@@ -11,12 +11,12 @@ import numpy as np
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 import function as f
-
+from scipy.interpolate import interp1d
 # Simulation parameters
 num_vehicles = 70
 communication_range = 10 # Number of vehicles ahead and behind within communication range
 num_subchannels = 100
-num_subframes = 20000
+num_subframes = 2000000
 sps_interval_range = (5,16)
 sliding_window_size = 10
 counting_interval = 1000
@@ -141,14 +141,14 @@ for subframe in tqdm(range(num_subframes), desc="Processing", ncols=100):
 #     print(f"Vehicle {vehicle} successful transmissions): {info['successful_transmissions']}")
 
 
-# ipg_data = f.calculate_IPG(IPG_Storage)
-# merged_ipg_list = f.merge_data(ipg_data)
-# unique_ipg_value,ipg_ccdf = f.calculate_ipg_tail(merged_ipg_list)
+ipg_data = f.calculate_IPG(IPG_Storage)
+merged_ipg_list = f.merge_data(ipg_data)
+unique_ipg_value,ipg_ccdf = f.calculate_ipg_tail(merged_ipg_list)
 
 ## problem here: the AOI is not calculated correctly,cuase AOI is like 0ms so correct this tmr.
 merge_aoi_list = f.merge_data(AOI_Storage)
 unique_aoi_value, aoi_ccdf = f.calculate_aoi_tail(merge_aoi_list)
 
-# f.plot_ipg_tail(unique_ipg_value, ipg_ccdf)
+f.plot_ipg_tail(unique_ipg_value, ipg_ccdf)
 f.plot_aoi_tail(unique_aoi_value, aoi_ccdf)
 f.plot_PRR(cumulative_prr_value)

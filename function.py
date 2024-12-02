@@ -136,7 +136,7 @@ def merge_data(ipg_data):
     return merged_list
 
 
-def calculate_tail(data_list):
+def calculate_ipg_tail(data_list):
     # Calculate the CCDF for IPG
     ipg_array = np.array(data_list)
     ipg_100ms_prob = np.sum(ipg_array == 1) / len(ipg_array)
@@ -152,6 +152,24 @@ def calculate_tail(data_list):
     print("Probability of 100ms IPG:", ipg_100ms_prob)
     return unique_value, ccdf
 
+
+def calculate_aoi_tail(data_list):
+    # Calculate the CCDF for IPG
+    aoi_array = np.array(data_list)
+    aoi_array = aoi_array + 1
+    aoi_0ms_prob = np.sum(aoi_array == 1) / len(aoi_array)
+    aoi_sorted = np.sort(aoi_array) * 100  # Convert sub-frames to milliseconds (assuming 1 sub-frame = 100 ms)
+    unique_value, counts = np.unique(aoi_sorted, return_counts= True)
+    print(aoi_array)
+    print(unique_value, counts)
+    cdf = np.cumsum(counts)/len(aoi_sorted)
+    ccdf = 1 - cdf
+    target_ccdf = 10 ** -5
+    interpolator = interp1d(ccdf, unique_value, fill_value="extrapolate")
+    x_value_at_target_ccdf = interpolator(target_ccdf)
+    print(f"X-axis value at CCDF = 10^-5 : {x_value_at_target_ccdf}")
+    print("Probability of 0ms AOI:", aoi_0ms_prob)
+    return unique_value, ccdf
 
 def neighbor_values(vehicles_info,num_vehicles):
     sum_up = 0
