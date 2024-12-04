@@ -11,16 +11,19 @@ import numpy as np
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 import function as f
+import pandas as pd
+
 
 # Simulation parameters
 num_vehicles = 70
 communication_range = 10 # Number of vehicles ahead and behind within communication range
 num_subchannels = 100
-num_subframes = 20000
+num_subframes = 2000000
 sps_interval_range = (5,16)
 sliding_window_size = 10
 counting_interval = 1000
 reselection_probability = 0.2
+
 # Variables to store PRR values
 prr_values = []
 cumulative_prr_value = []
@@ -29,6 +32,9 @@ prr_count = 0
 min_percent = 0.2
 threshold = 3
 vehicles_index = [33, 34, 35, 36, 37]
+
+
+
 # Initialize vehicle information
 vehicles_info = {}
 for vehicle in range(num_vehicles):
@@ -50,29 +56,29 @@ for vehicle in range(num_vehicles):
 
 # Initial the Storage of the data for vehicles
 IPG_Storage = {
-    33: {neighbor: [] for neighbor in range(23, 44)},  # Neighbors for transmitter 33 are 23 to 43
-    34: {neighbor: [] for neighbor in range(24, 45)},  # Example: Neighbors for transmitter 34
-    35: {neighbor: [] for neighbor in range(25, 46)},  # Example: Neighbors for transmitter 35
-    36: {neighbor: [] for neighbor in range(26, 47)},  # Example: Neighbors for transmitter 36
-    37: {neighbor: [] for neighbor in range(27, 48)},  # Example: Neighbors for transmitter 37
+    33: {neighbor: [] for neighbor in range(23, 44) if neighbor != 33},  # Neighbors for transmitter 33 are 23 to 43
+    34: {neighbor: [] for neighbor in range(24, 45) if neighbor != 34},  # Example: Neighbors for transmitter 34
+    35: {neighbor: [] for neighbor in range(25, 46) if neighbor != 35},  # Example: Neighbors for transmitter 35
+    36: {neighbor: [] for neighbor in range(26, 47) if neighbor != 36},  # Example: Neighbors for transmitter 36
+    37: {neighbor: [] for neighbor in range(27, 48) if neighbor != 37},  # Example: Neighbors for transmitter 37
 }
 
 # Initial the Storage of the Latest Updated Subframe for vehicles
 Last_update_Storage = {
-    33: {neighbor: 0 for neighbor in range(23, 44)},  # Neighbors for transmitter 33 are 23 to 43
-    34: {neighbor: 0 for neighbor in range(24, 45)},  # Example: Neighbors for transmitter 34
-    35: {neighbor: 0 for neighbor in range(25, 46)},  # Example: Neighbors for transmitter 35
-    36: {neighbor: 0 for neighbor in range(26, 47)},  # Example: Neighbors for transmitter 36
-    37: {neighbor: 0 for neighbor in range(27, 48)},  # Example: Neighbors for transmitter 37
+    33: {neighbor: 0 for neighbor in range(23, 44) if neighbor != 33},  # Neighbors for transmitter 33 are 23 to 43
+    34: {neighbor: 0 for neighbor in range(24, 45) if neighbor != 34},  # Example: Neighbors for transmitter 34
+    35: {neighbor: 0 for neighbor in range(25, 46) if neighbor != 35},  # Example: Neighbors for transmitter 35
+    36: {neighbor: 0 for neighbor in range(26, 47) if neighbor != 36},  # Example: Neighbors for transmitter 36
+    37: {neighbor: 0 for neighbor in range(27, 48) if neighbor != 37},  # Example: Neighbors for transmitter 37
 }
 
 # Initial the Storage of the AOI for vehicles
 AOI_Storage = {
-    33: {neighbor: [] for neighbor in range(23, 44)},  # Neighbors for transmitter 33 are 23 to 43
-    34: {neighbor: [] for neighbor in range(24, 45)},  # Example: Neighbors for transmitter 34
-    35: {neighbor: [] for neighbor in range(25, 46)},  # Example: Neighbors for transmitter 35
-    36: {neighbor: [] for neighbor in range(26, 47)},  # Example: Neighbors for transmitter 36
-    37: {neighbor: [] for neighbor in range(27, 48)},  # Example: Neighbors for transmitter 37
+    33: {neighbor: [] for neighbor in range(23, 44) if neighbor != 33},  # Neighbors for transmitter 33 are 23 to 43
+    34: {neighbor: [] for neighbor in range(24, 45) if neighbor != 34},  # Example: Neighbors for transmitter 34
+    35: {neighbor: [] for neighbor in range(25, 46) if neighbor != 35},  # Example: Neighbors for transmitter 35
+    36: {neighbor: [] for neighbor in range(26, 47) if neighbor != 36},  # Example: Neighbors for transmitter 36
+    37: {neighbor: [] for neighbor in range(27, 48) if neighbor != 37},  # Example: Neighbors for transmitter 37
 }
 # for vehicle, info in vehicles_info.items():
 #     print(f"Vehicle {vehicle} neighbors: {info['neighbors']}")
@@ -133,6 +139,7 @@ for subframe in tqdm(range(num_subframes), desc="Processing", ncols=100):
         cumulative_prr = cumulative_prr_sum / prr_count
         cumulative_prr_value.append(cumulative_prr)
     
+
     # print(attempted_transmissions)
     # print(transmissions)
     f.IPGModel_Berry(transmissions, IPG_Storage, subframe,vehicles_index)
@@ -141,14 +148,18 @@ for subframe in tqdm(range(num_subframes), desc="Processing", ncols=100):
 #     print(f"Vehicle {vehicle} successful transmissions): {info['successful_transmissions']}")
 
 
-# ipg_data = f.calculate_IPG(IPG_Storage)
-# merged_ipg_list = f.merge_data(ipg_data)
-# unique_ipg_value,ipg_ccdf = f.calculate_ipg_tail(merged_ipg_list)
+ipg_data = f.calculate_IPG(IPG_Storage)
+merged_ipg_list = f.merge_data(ipg_data)
+unique_ipg_value,ipg_ccdf = f.calculate_ipg_tail(merged_ipg_list)
 
-## problem here: the AOI is not calculated correctly,cuase AOI is like 0ms so correct this tmr.
+## problem here: the reason why AoI tail is too long cause i didn't count the vehicle itself it 
 merge_aoi_list = f.merge_data(AOI_Storage)
-unique_aoi_value, aoi_ccdf = f.calculate_aoi_tail(merge_aoi_list)
+unique_aoi_value, aoi_ccdf,num_count = f.calculate_aoi_tail(merge_aoi_list)
+value_count_dict = dict(zip(unique_aoi_value,num_count))
+df = pd.DataFrame(value_count_dict.items(), columns=['AOI', 'Count'])
+df.to_csv("AOI_Storage.csv", index=False)
+print("AOI Storage saved to 'AOI_Storage.xlsx'")
 
-# f.plot_ipg_tail(unique_ipg_value, ipg_ccdf)
+f.plot_ipg_tail(unique_ipg_value, ipg_ccdf)
 f.plot_aoi_tail(unique_aoi_value, aoi_ccdf)
 f.plot_PRR(cumulative_prr_value)
