@@ -19,7 +19,7 @@ num_vehicles = 70
 num_attackers = 6
 communication_range = 10 # Number of vehicles ahead and behind within communication range
 num_subchannels = 100
-num_subframes = 200000
+num_subframes = 2000000
 sps_interval_range = (5,16)
 sliding_window_size = 10
 counting_interval = 1000
@@ -182,7 +182,9 @@ for subframe in tqdm(range(num_subframes), desc="Processing", ncols=100):
         prr_count += 1
         cumulative_prr = cumulative_prr_sum / prr_count
         cumulative_prr_value.append(cumulative_prr)
-    
+
+    for vehicle, info in vehicles_info.items():
+        print(f"Vehicle {vehicle} sps counter is ):{info['sps_counter']} ")
 
 #     f.IPGModel_Berry(transmissions, IPG_Storage, subframe,vehicles_index)
 #     f.AOI_last_update(Last_update_Storage,subframe,transmissions,vehicles_index)
@@ -204,4 +206,5 @@ for subframe in tqdm(range(num_subframes), desc="Processing", ncols=100):
 
 # f.plot_ipg_tail(unique_ipg_value, ipg_ccdf)
 # f.plot_aoi_tail(unique_aoi_value, aoi_ccdf)
+
 f.plot_PRR(cumulative_prr_value)

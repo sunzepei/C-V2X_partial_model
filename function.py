@@ -67,12 +67,14 @@ def update_neighbors(vehicle, subchannel, vehicles_info,subframe_position,attack
         else:
             attackrs_info[neighbor]['resource_map'][subchannel, subframe_position] = 1
 
-def update_neighbors_row(vehicle, subchannel, vehicles_info,subframe_position,attackrs_info,attacker_start_index):
-    for neighbor in vehicles_info[vehicle]['neighbors']:
-        if neighbor < attacker_start_index:
-            vehicles_info[neighbor]['resource_map'][subchannel, subframe_position] = 1  # Mark usage
+def update_neighbors_row(vehicle_info,channel_pick,subframe_position,attackrs_info,attacker_start_index):
+    for vehicle, subchannel in channel_pick.items():
+        if vehicle < attacker_start_index:
+            for neighbor in vehicle_info[vehicle]['neighbors']:
+                vehicle_info[neighbor]['resource_map'][subchannel, subframe_position] = 1
         else:
-            attackrs_info[neighbor]['resource_map'][subchannel, subframe_position] = 1
+            for neighbor in attackrs_info[vehicle]['neighbors']:
+                attackrs_info[neighbor]['resource_map'][subchannel, subframe_position] = 1
 
 def package_received(attempt_transmission,station_info,attacker_start_index,attackers_info):
     successful_transmissions = {}
@@ -151,7 +153,6 @@ def package_received(attempt_transmission,station_info,attacker_start_index,atta
 
 def calculate_PRR(success_num, total_neighbors):
     return Fraction(success_num, total_neighbors)
-
 
 
 def IPGModel_Berry(transmissions,IPG_Storage , subframe,vehicles_index):

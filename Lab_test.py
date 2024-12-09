@@ -19,7 +19,7 @@ num_vehicles = 70
 num_attackers = 6
 communication_range = 10 # Number of vehicles ahead and behind within communication range
 num_subchannels = 100
-num_subframes = 200000
+num_subframes = 20000
 sps_interval_range = (5,16)
 sliding_window_size = 10
 counting_interval = 1000
@@ -127,8 +127,8 @@ for subframe in tqdm(range(num_subframes), desc="Processing", ncols=100):
     subframe_position = subframe % sliding_window_size
     for vehicle in vehicles_info:
         vehicles_info[vehicle]['resource_map'][:, subframe_position] = 0  # Reset current sub-frame
-
-
+    
+    channel_pick = {}
     for vehicle, info in vehicles_info.items():
         # print(f"Now is processing vehicle {vehicle}")
          # Handle SPS counter and reselection
@@ -139,15 +139,14 @@ for subframe in tqdm(range(num_subframes), desc="Processing", ncols=100):
                     info['current_subchannel'] = f.choose_subchannel(info['current_subchannel'],
                                                                             info['resource_map'],threshold)
                 info['sps_counter'] = np.random.randint(sps_interval_range[0], sps_interval_range[1])
+                
             else:
                 pass
-
-            f.update_neighbors(vehicle, info['current_subchannel'], 
-                                vehicles_info,subframe_position,attackers_info,attacker_start_index)
+            channel_pick[vehicle] = info['current_subchannel']
             info['sps_counter'] -= 1
             # print(f"the {vehicle} counter is {info['sps_counter']}")
             info['next_selection_frame'] = subframe + 1
-
+ 
        # Track attempted transmissions
         current_channel = info['current_subchannel']
         if current_channel not in attempted_transmissions:
@@ -159,14 +158,17 @@ for subframe in tqdm(range(num_subframes), desc="Processing", ncols=100):
         if subframe == info['next_attack_frame']:
             info['current_subchannel'] = f.select_channel_to_attack(info['resource_map'],num_subchannels)
             info['next_attack_frame'] = subframe + info['sps_interval']
+        channel_pick[attacker_id] = info['current_subchannel']
         current_channel = info['current_subchannel']
         if current_channel not in attempted_transmissions:
             attempted_transmissions[current_channel] = []
         attempted_transmissions[current_channel].append(attacker_id)
-    
+
+    f.update_neighbors_row(vehicles_info,channel_pick,
+                            subframe_position,attackers_info,attacker_start_index)
     transmissions = f.package_received(attempted_transmissions,
                                             vehicles_info,attacker_start_index,attackers_info,)
-    
+
 
     for key, values in transmissions.items():
         for index in attacker_number:
