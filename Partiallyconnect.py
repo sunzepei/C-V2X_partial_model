@@ -34,7 +34,6 @@ threshold = 3
 vehicles_index = [33, 34, 35, 36, 37]
 
 
-
 # Initialize vehicle information
 vehicles_info = {}
 for vehicle in range(num_vehicles):

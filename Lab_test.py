@@ -11,18 +11,21 @@ import numpy as np
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 import function as f
-from scipy.interpolate import interp1d
 import pandas as pd
+
+
 # Simulation parameters
 num_vehicles = 70
+num_attackers = 6
 communication_range = 10 # Number of vehicles ahead and behind within communication range
 num_subchannels = 100
-num_subframes = 2000000
+num_subframes = 200000
 sps_interval_range = (5,16)
-one_shot_range = (5,16)  # Range for the one-shot counter
 sliding_window_size = 10
 counting_interval = 1000
 reselection_probability = 0.2
+##Adding attackers
+attacker_start_index = 70
 # Variables to store PRR values
 prr_values = []
 cumulative_prr_value = []
@@ -31,6 +34,35 @@ prr_count = 0
 min_percent = 0.2
 threshold = 3
 vehicles_index = [33, 34, 35, 36, 37]
+attacker_number = [70, 71, 72, 73, 74, 75]
+
+
+# Initialize attackers information
+for attackers in range(num_attackers):
+    start_idx = max(0, (attackers+1)*10 - communication_range)
+    end_idx = min(num_vehicles - 1, (attackers+1)*10 + communication_range)
+    neighbors = list(range(start_idx, end_idx + 1 if attackers == 5 else end_idx ))
+
+    attackers_info = {
+        attacker_id: {
+            'sps_interval': 10,  # Fixed SPS interval for all attackers
+            'current_subchannel': None,
+            'next_attack_frame': 0,
+            'neighbors': neighbors,
+            'resource_map': np.zeros((num_subchannels, sliding_window_size), dtype=np.uint8),
+        }
+        for attacker_id in range(num_vehicles, num_vehicles+num_attackers)
+    }
+
+attacker_positions = [
+    (9, 10),
+    (19, 20),
+    (29, 30),
+    (39, 40),
+    (49, 50),
+    (59, 60)
+]
+
 # Initialize vehicle information
 vehicles_info = {}
 for vehicle in range(num_vehicles):
@@ -39,19 +71,26 @@ for vehicle in range(num_vehicles):
     end_idx = min(num_vehicles - 1, vehicle + communication_range)
     neighbors = list(range(start_idx, end_idx + 1))
     # neighbors.remove(vehicle)  # Exclude self in the function already
+    
+    
+    # Insert attackers into the neighbor list where appropriate
+    for i, (left_vehicle, right_vehicle) in enumerate(attacker_positions):
+        attacker_idx = attacker_start_index + i
+        # If the neighbor range includes either 'left_vehicle' or 'right_vehicle',
+        # we consider the attacker as also in range.
+        if left_vehicle in neighbors and right_vehicle in neighbors:
+            neighbors.append(attacker_idx)
 
     vehicles_info[vehicle] = {
         'neighbors': neighbors,
         'current_subchannel': np.random.choice(num_subchannels),
-        'original_subchannel': None,  # Original subchannel before one-shot
         'next_selection_frame': 0,
         'sps_counter': np.random.randint(sps_interval_range[0], sps_interval_range[1]),
-        'one_shot_counter': np.random.randint(one_shot_range[0], one_shot_range[1]),
-        'use_one_shot': False,  # Flag for using one-shot resource
         # Local resource map for the last 10 subframes sliding window
         'resource_map': np.zeros((num_subchannels, sliding_window_size), dtype=np.uint8),
         }
 
+total_neighbors = sum(len(info['neighbors']) for info in vehicles_info.values()) - num_vehicles
 # Initial the Storage of the data for vehicles
 IPG_Storage = {
     33: {neighbor: [] for neighbor in range(23, 44) if neighbor != 33},  # Neighbors for transmitter 33 are 23 to 43
@@ -78,68 +117,34 @@ AOI_Storage = {
     36: {neighbor: [] for neighbor in range(26, 47) if neighbor != 36},  # Example: Neighbors for transmitter 36
     37: {neighbor: [] for neighbor in range(27, 48) if neighbor != 37},  # Example: Neighbors for transmitter 37
 }
-# for vehicle, info in vehicles_info.items():
-#     print(f"Vehicle {vehicle} neighbors: {info['neighbors']}")
-
-# for vehicle, info in vehicles_info.items():
-#     print(f"Vehicle {vehicle} SPS_Counter: {info['sps_counter']}")
-
-
-
-
-total_neighbors = sum(len(info['neighbors']) for info in vehicles_info.values()) - num_vehicles
 
 
 # Main simulation loop
 for subframe in tqdm(range(num_subframes), desc="Processing", ncols=100):
     # Step 1: Allocate subchannels for vehicles and populate attempted transmissions
     attempted_transmissions = {}  # Track subchannel usage in the current subframe
-    successful_transmissions = {}  # Track successful transmissions in the current subframe
     # Allocate subchannels and populate attempted_transmissions
-
     subframe_position = subframe % sliding_window_size
     for vehicle in vehicles_info:
         vehicles_info[vehicle]['resource_map'][:, subframe_position] = 0  # Reset current sub-frame
 
 
     for vehicle, info in vehicles_info.items():
-        # Check if it's time for the vehicle to reselect a subchannel
+        # print(f"Now is processing vehicle {vehicle}")
+         # Handle SPS counter and reselection
         if subframe == info['next_selection_frame']:
-            if info['use_one_shot']:
-                # Return to original subchannel after one-shot usage
-                info['current_subchannel'] = info['original_subchannel']
-                info['use_one_shot'] = False
-            elif info['sps_counter'] <= 0:  # Cs = 0
-                if np.random.rand() < reselection_probability:  # Change resource
+            if info['sps_counter'] <= 0:
+                if np.random.rand() < reselection_probability:
+                # Randomly reselrect subchannel if the interval has elapsed
                     info['current_subchannel'] = f.choose_subchannel(info['current_subchannel'],
                                                                             info['resource_map'],threshold)
-                    info['sps_counter'] = np.random.randint(sps_interval_range[0],
-                                                             sps_interval_range[1])  # Reassign SPS interval
-                    info['one_shot_counter'] = np.random.randint(one_shot_range[0], one_shot_range[1])
-                else:  # Keep resource
-                    info['sps_counter'] = np.random.randint(sps_interval_range[0],
-                                                             sps_interval_range[1])  # Reassign SPS interval
-                    if info['one_shot_counter'] <= 0:  # Co = 0
-                        info['original_subchannel'] = info['current_subchannel']
-                        info['current_subchannel'] = f.choose_subchannel(info['current_subchannel'],
-                                                                            info['resource_map'],threshold)
-                        info['one_shot_counter'] = np.random.randint(one_shot_range[0], one_shot_range[1])
-                        info['use_one_shot'] = True
-                    else:  # Co > 0
-                        pass
-            else:  # Cs > 0
-                if info['one_shot_counter'] <= 0:  # Co = 0
-                    info['original_subchannel'] = info['current_subchannel']
-                    info['current_subchannel'] = f.choose_subchannel(info['current_subchannel'],
-                                                                            info['resource_map'],threshold)
-                    info['one_shot_counter'] = np.random.randint(one_shot_range[0], one_shot_range[1])
-                    info['use_one_shot'] = True
-                else:  # Co > 0
-                    pass
+                info['sps_counter'] = np.random.randint(sps_interval_range[0], sps_interval_range[1])
+            else:
+                pass
 
-            f.update_neighbors(vehicle, info['current_subchannel'], vehicles_info,subframe_position)
+            f.update_neighbors(vehicle, info['current_subchannel'], 
+                                vehicles_info,subframe_position,attackers_info,attacker_start_index)
             info['sps_counter'] -= 1
-            info['one_shot_counter'] -= 1
             # print(f"the {vehicle} counter is {info['sps_counter']}")
             info['next_selection_frame'] = subframe + 1
 
@@ -149,7 +154,25 @@ for subframe in tqdm(range(num_subframes), desc="Processing", ncols=100):
             attempted_transmissions[current_channel] = []
         attempted_transmissions[current_channel].append(vehicle)
 
-    transmissions = f.package_received(attempted_transmissions,successful_transmissions,vehicles_info)
+        # Mark the subchannel usage for attackers first
+    for attacker_id, info in attackers_info.items():
+        if subframe == info['next_attack_frame']:
+            info['current_subchannel'] = f.select_channel_to_attack(info['resource_map'],num_subchannels)
+            info['next_attack_frame'] = subframe + info['sps_interval']
+        current_channel = info['current_subchannel']
+        if current_channel not in attempted_transmissions:
+            attempted_transmissions[current_channel] = []
+        attempted_transmissions[current_channel].append(attacker_id)
+    
+    transmissions = f.package_received(attempted_transmissions,
+                                            vehicles_info,attacker_start_index,attackers_info,)
+    
+
+    for key, values in transmissions.items():
+        for index in attacker_number:
+            if index in values:
+                values.remove(index)
+       
     success_num = sum(len(value) for value in transmissions.values())
 
     # Step 3: Calculate Packet Delivery Ratio (PDR) every 2000 subframes
@@ -160,27 +183,25 @@ for subframe in tqdm(range(num_subframes), desc="Processing", ncols=100):
         cumulative_prr = cumulative_prr_sum / prr_count
         cumulative_prr_value.append(cumulative_prr)
     
-    # print(attempted_transmissions)
-    # print(transmissions)
-    f.IPGModel_Berry(transmissions, IPG_Storage, subframe,vehicles_index)
-    f.AOI_last_update(Last_update_Storage,subframe,transmissions,vehicles_index)
-    f.AOI_model(Last_update_Storage,subframe,AOI_Storage)# for vehicle, info in vehicles_info.items():
-#     print(f"Vehicle {vehicle} successful transmissions): {info['successful_transmissions']}")
+
+#     f.IPGModel_Berry(transmissions, IPG_Storage, subframe,vehicles_index)
+#     f.AOI_last_update(Last_update_Storage,subframe,transmissions,vehicles_index)
+#     f.AOI_model(Last_update_Storage,subframe,AOI_Storage)# for vehicle, info in vehicles_info.items():
+# #     print(f"Vehicle {vehicle} successful transmissions): {info['successful_transmissions']}")
 
 
-ipg_data = f.calculate_IPG(IPG_Storage)
-merged_ipg_list = f.merge_data(ipg_data)
-unique_ipg_value,ipg_ccdf = f.calculate_ipg_tail(merged_ipg_list)
+# ipg_data = f.calculate_IPG(IPG_Storage)
+# merged_ipg_list = f.merge_data(ipg_data)
+# unique_ipg_value,ipg_ccdf = f.calculate_ipg_tail(merged_ipg_list)
 
-## problem here: the AOI is not calculated correctly,cuase AOI is like 0ms so correct this tmr.
-merge_aoi_list = f.merge_data(AOI_Storage)
-unique_aoi_value, aoi_ccdf,num_count = f.calculate_aoi_tail(merge_aoi_list)
-value_count_dict = dict(zip(unique_aoi_value,num_count))
-df = pd.DataFrame(value_count_dict.items(), columns=['AOI', 'Count'])
-df.to_csv("AOI_Storage_Oneshot(2,7).csv", index=False)
-print("AOI Storage saved to 'AOI_Storage.csv'")
+# ## problem here: the reason why AoI tail is too long cause i didn't count the vehicle itself it 
+# merge_aoi_list = f.merge_data(AOI_Storage)
+# unique_aoi_value, aoi_ccdf,num_count = f.calculate_aoi_tail(merge_aoi_list)
+# value_count_dict = dict(zip(unique_aoi_value,num_count))
+# df = pd.DataFrame(value_count_dict.items(), columns=['AOI', 'Count'])
+# df.to_csv("AOI_Storage.csv", index=False)
+# print("AOI Storage saved to 'AOI_Storage.xlsx'")
 
-## plot the IPG tail and AOI tail
-f.plot_ipg_tail(unique_ipg_value, ipg_ccdf)
-f.plot_aoi_tail(unique_aoi_value, aoi_ccdf)
+# f.plot_ipg_tail(unique_ipg_value, ipg_ccdf)
+# f.plot_aoi_tail(unique_aoi_value, aoi_ccdf)
 f.plot_PRR(cumulative_prr_value)
