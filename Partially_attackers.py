@@ -183,8 +183,8 @@ for subframe in tqdm(range(num_subframes), desc="Processing", ncols=100):
         cumulative_prr = cumulative_prr_sum / prr_count
         cumulative_prr_value.append(cumulative_prr)
 
-    for vehicle, info in vehicles_info.items():
-        print(f"Vehicle {vehicle} sps counter is ):{info['sps_counter']} ")
+    # for vehicle, info in vehicles_info.items():
+    #     print(f"Vehicle {vehicle} sps counter is ):{info['sps_counter']} ")
 
 #     f.IPGModel_Berry(transmissions, IPG_Storage, subframe,vehicles_index)
 #     f.AOI_last_update(Last_update_Storage,subframe,transmissions,vehicles_index)
