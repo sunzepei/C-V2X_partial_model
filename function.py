@@ -210,7 +210,7 @@ def calculate_ipg_tail(data_list):
     target_ccdf = 10 ** -4
     interpolator = interp1d(ccdf, unique_value, fill_value="extrapolate")
     x_value_at_target_ccdf = interpolator(target_ccdf)
-    print(f"X-axis value at CCDF = 10^-5 : {x_value_at_target_ccdf}")
+    print(f"X-axis value at CCDF = 10^-4 : {x_value_at_target_ccdf}")
     print("Probability of 100ms IPG:", ipg_100ms_prob)
     return unique_value, ccdf
 
@@ -226,10 +226,10 @@ def calculate_aoi_tail(data_list):
 
     cdf = np.cumsum(counts)/len(aoi_sorted)
     ccdf = 1 - cdf
-    target_ccdf = 10 ** -5
+    target_ccdf = 10 ** -4
     interpolator = interp1d(ccdf, unique_value, fill_value="extrapolate")
     x_value_at_target_ccdf = interpolator(target_ccdf)
-    print(f"X-axis value at CCDF = 10^-5 : {x_value_at_target_ccdf}")
+    print(f"X-axis value at CCDF = 10^-4 : {x_value_at_target_ccdf}")
     print("Probability of 0ms AOI:", aoi_0ms_prob)
     return unique_value, ccdf,counts
 
