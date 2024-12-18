@@ -6,7 +6,6 @@
 ##
 
 
-
 import numpy as np
 import matplotlib.pyplot as plt
 from tqdm import tqdm
@@ -97,7 +96,7 @@ for subframe in tqdm(range(num_subframes), desc="Processing", ncols=100):
     attempted_transmissions = {}  # Track subchannel usage in the current subframe
     successful_transmissions = {}  # Track successful transmissions in the current subframe
     # Allocate subchannels and populate attempted_transmissions
-
+    channel_pick = {}
     subframe_position = subframe % sliding_window_size
     for vehicle in vehicles_info:
         vehicles_info[vehicle]['resource_map'][:, subframe_position] = 0  # Reset current sub-frame
@@ -113,10 +112,8 @@ for subframe in tqdm(range(num_subframes), desc="Processing", ncols=100):
                     info['current_subchannel'] = f.choose_subchannel(info['current_subchannel'],
                                                                             info['resource_map'],threshold)
                 info['sps_counter'] = np.random.randint(sps_interval_range[0], sps_interval_range[1])
-            else:
-                pass
 
-            f.update_neighbors(vehicle, info['current_subchannel'], vehicles_info,subframe_position)
+            channel_pick[vehicle] = info['current_subchannel']
             info['sps_counter'] -= 1
             # print(f"the {vehicle} counter is {info['sps_counter']}")
             info['next_selection_frame'] = subframe + 1
@@ -127,6 +124,7 @@ for subframe in tqdm(range(num_subframes), desc="Processing", ncols=100):
             attempted_transmissions[current_channel] = []
         attempted_transmissions[current_channel].append(vehicle)
 
+    f.update_neighbors_row(vehicles_info,channel_pick,subframe_position)
     transmissions = f.package_received(attempted_transmissions,successful_transmissions,vehicles_info)
     success_num = sum(len(value) for value in transmissions.values())
 

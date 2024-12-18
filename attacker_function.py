@@ -57,31 +57,33 @@ def select_channel_to_attack(resource_map,num_subchannels):
     return np.random.choice(busy_indices) if len(busy_indices) > 0 else np.random.choice(num_subchannels)
 
 
-def update_neighbors(vehicle, subchannel, vehicles_info,subframe_position,attackrs_info,attacker_start_index):
-    """
-    Inform the neighbors of the vehicle's subchannel choice and update their resource maps.
-    """
-    for neighbor in vehicles_info[vehicle]['neighbors']:
-        if neighbor < attacker_start_index:
-            vehicles_info[neighbor]['resource_map'][subchannel, subframe_position] = 1  # Mark usage
-        else:
-            attackrs_info[neighbor]['resource_map'][subchannel, subframe_position] = 1
+# def update_neighbors(vehicle, subchannel, vehicles_info,subframe_position,attackrs_info,attacker_start_index):
+#     """
+#     Inform the neighbors of the vehicle's subchannel choice and update their resource maps.
+#     """
+#     for neighbor in vehicles_info[vehicle]['neighbors']:
+#         if neighbor < attacker_start_index:
+#             vehicles_info[neighbor]['resource_map'][subchannel, subframe_position] = 1  # Mark usage
+#         else:
+#             attackrs_info[neighbor]['resource_map'][subchannel, subframe_position] = 1
 
-def update_neighbors_row(vehicle_info,channel_pick,subframe_position,attackrs_info,attacker_start_index):
+
+def update_vehicle_neighbors_row(vehicle_info,channel_pick,subframe_position,attackrs_info,attacker_start_index):
     for vehicle, subchannel in channel_pick.items():
-        if vehicle < attacker_start_index:
-            for neighbor in vehicle_info[vehicle]['neighbors']:
-                if neighbor < attacker_start_index:
-                    vehicle_info[neighbor]['resource_map'][subchannel, subframe_position] = 1
-                else:
-                    attackrs_info[neighbor]['resource_map'][subchannel, subframe_position] = 1
-        else:
-            for neighbor in attackrs_info[vehicle]['neighbors']:
-                if neighbor < attacker_start_index:
-                    vehicle_info[neighbor]['resource_map'][subchannel, subframe_position] = 1
-                else:
-                    attackrs_info[neighbor]['resource_map'][subchannel, subframe_position] = 1
+        for neighbor in vehicle_info[vehicle]['neighbors']:
+            if neighbor < attacker_start_index:
+                vehicle_info[neighbor]['resource_map'][subchannel, subframe_position] = 1
+            else:
+                attackrs_info[neighbor]['resource_map'][subchannel, subframe_position] = 1
 
+
+def update_attacker_neighbors_row(vehicle_info,channel_pick,subframe_position,attackrs_info,attacker_start_index):
+    for vehicle, subchannel in channel_pick.items():
+        for neighbor in attackrs_info[vehicle]['neighbors']:
+            if neighbor < attacker_start_index:
+                vehicle_info[neighbor]['resource_map'][subchannel, subframe_position] = 1
+            else:
+                attackrs_info[neighbor]['resource_map'][subchannel, subframe_position] = 1
 
 def package_received(attempt_transmission,station_info,attacker_start_index,attackers_info):
     successful_transmissions = {}
@@ -120,43 +122,6 @@ def package_received(attempt_transmission,station_info,attacker_start_index,atta
             values.remove(key)  # This removes the vehicle from its neighbor list in place
     return  successful_transmissions
 
-##alternative function
-# def package_received(attempt_transmission,station_info,attacker_start_index,attackers_info):
-#     successful_transmissions = {}
-#     for channel, transmitters in attempt_transmission.items():
-#         vehicle_transmitters = [t for t in transmitters if t < attacker_start_index]
-#         attacker_transmitters = [t for t in transmitters if t >= attacker_start_index]
-
-#         if  len(transmitters) == 1 and len(vehicle_transmitters) == 1:
-#             vehicle = vehicle_transmitters[0]
-#             successful_transmissions[vehicle] = station_info[vehicle]['neighbors']
-#         else:     
-#             all_neighbors = {}
-#             for vehicle in vehicles:
-#                 if vehicle < attacker_start_index:
-#                     all_neighbors[vehicle] = station_info[vehicle]['neighbors']
-#                 else:
-#                     all_neighbors[vehicle] = attackers_info[vehicle]['neighbors']
-
-#             sets = {key: set(value) for key, value in all_neighbors.items()}
-
-#             # Find overlapping part (intersection of all sets)
-#             exclusive_neighbors = {}
-#             for vehicle, neighbor_set in sets.items():
-#                 if vehicle < attacker_start_index:
-#                     # Union of neighbors of all other vehicles
-#                     others_union = set().union(*(sets[other] for
-#                                     other in sets.keys() if other != vehicle))
-#                     # Exclusive neighbors for the current vehicle
-#                     unique_neighbors = neighbor_set - others_union
-#                     exclusive_neighbors[vehicle] = list(unique_neighbors)
-#                     successful_transmissions.update(exclusive_neighbors)
-#                 else:
-#                     pass
-#     for key, values in successful_transmissions.items():
-#         if key in values:
-#             values.remove(key)  # This removes the vehicle from its neighbor list in place
-#     return  successful_transmissions
 
 def calculate_PRR(success_num, total_neighbors):
     return Fraction(success_num, total_neighbors)
@@ -220,10 +185,10 @@ def calculate_ipg_tail(data_list):
 
     cdf = np.cumsum(counts)/len(ipg_sorted)
     ccdf = 1 - cdf
-    target_ccdf = 10 ** -5
+    target_ccdf = 10 ** -4
     interpolator = interp1d(ccdf, unique_value, fill_value="extrapolate")
     x_value_at_target_ccdf = interpolator(target_ccdf)
-    print(f"X-axis value at CCDF = 10^-5 : {x_value_at_target_ccdf}")
+    print(f"X-axis value at CCDF = 10^-4 : {x_value_at_target_ccdf}")
     print("Probability of 100ms IPG:", ipg_100ms_prob)
     return unique_value, ccdf
 
@@ -239,10 +204,10 @@ def calculate_aoi_tail(data_list):
 
     cdf = np.cumsum(counts)/len(aoi_sorted)
     ccdf = 1 - cdf
-    target_ccdf = 10 ** -5
+    target_ccdf = 10 ** -4
     interpolator = interp1d(ccdf, unique_value, fill_value="extrapolate")
     x_value_at_target_ccdf = interpolator(target_ccdf)
-    print(f"X-axis value at CCDF = 10^-5 : {x_value_at_target_ccdf}")
+    print(f"X-axis value at CCDF = 10^-4 : {x_value_at_target_ccdf}")
     print("Probability of 0ms AOI:", aoi_0ms_prob)
     return unique_value, ccdf,counts
 

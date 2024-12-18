@@ -66,6 +66,7 @@ for attacker_id in range(num_vehicles, num_vehicles + num_attackers):
         'resource_map': np.zeros((num_subchannels, sliding_window_size), dtype=np.uint8),
     }
 
+
 # Initialize vehicle information
 vehicles_info = {}
 for vehicle in range(num_vehicles):
@@ -128,11 +129,12 @@ AOI_Storage = {
 for subframe in tqdm(range(num_subframes), desc="Processing", ncols=100):
     # Step 1: Allocate subchannels for vehicles and populate attempted transmissions
     attempted_transmissions = {}  # Track subchannel usage in the current subframe
+    vehicle_channel_pick = {} ## This stores the channel picked by the vehicle in each subframe
+    attacker_channel_pick = {} ## This stores the channel picked by the attacker in each subframe
     # Allocate subchannels and populate attempted_transmissions
     subframe_position = subframe % sliding_window_size
     for vehicle in vehicles_info:
         vehicles_info[vehicle]['resource_map'][:, subframe_position] = 0  # Reset current sub-frame
-
 
     for vehicle, info in vehicles_info.items():
         # print(f"Now is processing vehicle {vehicle}")
@@ -144,17 +146,15 @@ for subframe in tqdm(range(num_subframes), desc="Processing", ncols=100):
                     info['current_subchannel'] = at.choose_subchannel(info['current_subchannel'],
                                                                             info['resource_map'],threshold)
                 info['sps_counter'] = np.random.randint(sps_interval_range[0], sps_interval_range[1])
-            else:
-                pass
 
-            at.update_neighbors_row(vehicle, info['current_subchannel'], 
-                                vehicles_info,subframe_position,attackers_info,attacker_start_index)
+            vehicle_channel_pick[vehicle] = info['current_subchannel']
             info['sps_counter'] -= 1
             # print(f"the {vehicle} counter is {info['sps_counter']}")
             info['next_selection_frame'] = subframe + 1
-
+            
        # Track attempted transmissions
         current_channel = info['current_subchannel']
+
         if current_channel not in attempted_transmissions:
             attempted_transmissions[current_channel] = []
         attempted_transmissions[current_channel].append(vehicle)
@@ -165,16 +165,18 @@ for subframe in tqdm(range(num_subframes), desc="Processing", ncols=100):
             info['current_subchannel'] = at.select_channel_to_attack(info['resource_map'],num_subchannels)
             info['next_attack_frame'] = subframe + info['sps_interval']
         current_channel = info['current_subchannel']
+        attacker_channel_pick[attacker_id] = current_channel
+        
         if current_channel not in attempted_transmissions:
             attempted_transmissions[current_channel] = []
         attempted_transmissions[current_channel].append(attacker_id)
-    
-    transmissions = at.package_received(attempted_transmissions,
-                                            vehicles_info,attacker_start_index,attackers_info,)
-    
 
+    at.update_vehicle_neighbors_row(vehicles_info,vehicle_channel_pick, subframe_position,attackers_info,attacker_start_index)
+    at.update_attacker_neighbors_row(vehicles_info, attacker_channel_pick,subframe_position,attackers_info,attacker_start_index)
+    transmissions = at.package_received(attempted_transmissions,vehicles_info,attacker_start_index,attackers_info,)
+    
     for key, values in transmissions.items():
-        for index in attacker_number:
+        for index in attackers_info.keys():
             if index in values:
                 values.remove(index)
        
@@ -188,9 +190,6 @@ for subframe in tqdm(range(num_subframes), desc="Processing", ncols=100):
         cumulative_prr = cumulative_prr_sum / prr_count
         cumulative_prr_value.append(cumulative_prr)
 
-    for vehicle, info in vehicles_info.items():
-        print(f"Vehicle {vehicle} sps counter is ):{info['sps_counter']} ")
-
     at.IPGModel_Berry(transmissions, IPG_Storage, subframe,vehicles_index)
     at.AOI_last_update(Last_update_Storage,subframe,transmissions,vehicles_index)
     at.AOI_model(Last_update_Storage,subframe,AOI_Storage)# for vehicle, info in vehicles_info.items():
@@ -203,7 +202,7 @@ unique_ipg_value,ipg_ccdf = at.calculate_ipg_tail(merged_ipg_list)
 
 ## problem here: the reason why AoI tail is too long cause i didn't count the vehicle itself it 
 merge_aoi_list = at.merge_data(AOI_Storage)
-unique_aoi_value, aoi_ccdf,num_count = f.calculate_aoi_tail(merge_aoi_list)
+unique_aoi_value, aoi_ccdf,num_count = at.calculate_aoi_tail(merge_aoi_list)
 value_count_dict = dict(zip(unique_aoi_value,num_count))
 df = pd.DataFrame(value_count_dict.items(), columns=['AOI', 'Count'])
 df.to_csv("AOI_Storage.csv", index=False)

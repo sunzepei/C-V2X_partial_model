@@ -65,20 +65,11 @@ def update_neighbors(vehicle, subchannel, vehicles_info,subframe_position):
         vehicles_info[neighbor]['resource_map'][subchannel, subframe_position] = 1  # Mark usage
 
 
-def update_neighbors_row(vehicle_info,channel_pick,subframe_position,attackrs_info,attacker_start_index):
+def update_neighbors_row(vehicle_info,channel_pick,subframe_position):
     for vehicle, subchannel in channel_pick.items():
-        if vehicle < attacker_start_index:
-            for neighbor in vehicle_info[vehicle]['neighbors']:
-                if neighbor < attacker_start_index:
-                    vehicle_info[neighbor]['resource_map'][subchannel, subframe_position] = 1
-                else:
-                    attackrs_info[neighbor]['resource_map'][subchannel, subframe_position] = 1
-        else:
-            for neighbor in attackrs_info[vehicle]['neighbors']:
-                if neighbor < attacker_start_index:
-                    vehicle_info[neighbor]['resource_map'][subchannel, subframe_position] = 1
-                else:
-                    attackrs_info[neighbor]['resource_map'][subchannel, subframe_position] = 1
+        for neighbor in vehicle_info[vehicle]['neighbors']:
+            vehicle_info[neighbor]['resource_map'][subchannel, subframe_position] = 1
+
 
 def package_received(attempt_transmission,successful_transmissions,station_info):
     for channel, vehicles in attempt_transmission.items():
