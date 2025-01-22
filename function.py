@@ -27,14 +27,7 @@ def pick_value_least(value_list, threshold):
         percent = num_selected / n
 
     return indices
-#  # advanced Function to pick subchannels with usage below a certain threshold
-# def pick_value_least(value_list, min_percent,threshold):
-#     value_array = np.array(value_list)
-#     indices = np.where(value_array <= threshold)[0].tolist()
-#     if len(indices) < min_percent * len(value_list):
-#         new_threshold = np.percentile(value_array, min_percent * 100)
-#         indices = np.where(value_array <= new_threshold)[0].tolist()
-#     return indices
+
 
 
 
@@ -98,43 +91,7 @@ def package_received(attempt_transmission,successful_transmissions,station_info)
             values.remove(key)  # This removes the vehicle from its neighbor list in place
     return  successful_transmissions
 
-##alternative function
-# def package_received(attempt_transmission,station_info,attacker_start_index,attackers_info):
-#     successful_transmissions = {}
-#     for channel, transmitters in attempt_transmission.items():
-#         vehicle_transmitters = [t for t in transmitters if t < attacker_start_index]
-#         attacker_transmitters = [t for t in transmitters if t >= attacker_start_index]
 
-#         if  len(transmitters) == 1 and len(vehicle_transmitters) == 1:
-#             vehicle = vehicle_transmitters[0]
-#             successful_transmissions[vehicle] = station_info[vehicle]['neighbors']
-#         else:     
-#             all_neighbors = {}
-#             for vehicle in vehicles:
-#                 if vehicle < attacker_start_index:
-#                     all_neighbors[vehicle] = station_info[vehicle]['neighbors']
-#                 else:
-#                     all_neighbors[vehicle] = attackers_info[vehicle]['neighbors']
-
-#             sets = {key: set(value) for key, value in all_neighbors.items()}
-
-#             # Find overlapping part (intersection of all sets)
-#             exclusive_neighbors = {}
-#             for vehicle, neighbor_set in sets.items():
-#                 if vehicle < attacker_start_index:
-#                     # Union of neighbors of all other vehicles
-#                     others_union = set().union(*(sets[other] for
-#                                     other in sets.keys() if other != vehicle))
-#                     # Exclusive neighbors for the current vehicle
-#                     unique_neighbors = neighbor_set - others_union
-#                     exclusive_neighbors[vehicle] = list(unique_neighbors)
-#                     successful_transmissions.update(exclusive_neighbors)
-#                 else:
-#                     pass
-#     for key, values in successful_transmissions.items():
-#         if key in values:
-#             values.remove(key)  # This removes the vehicle from its neighbor list in place
-#     return  successful_transmissions
 
 def calculate_PRR(success_num, total_neighbors):
     return Fraction(success_num, total_neighbors)
@@ -217,10 +174,10 @@ def calculate_aoi_tail(data_list):
 
     cdf = np.cumsum(counts)/len(aoi_sorted)
     ccdf = 1 - cdf
-    target_ccdf = 10 ** -4
+    target_ccdf = 10 ** -2
     interpolator = interp1d(ccdf, unique_value, fill_value="extrapolate")
     x_value_at_target_ccdf = interpolator(target_ccdf)
-    print(f"X-axis value at CCDF = 10^-4 : {x_value_at_target_ccdf}")
+    print(f"X-axis value at CCDF = 10^-3 : {x_value_at_target_ccdf}")
     print("Probability of 0ms AOI:", aoi_0ms_prob)
     return unique_value, ccdf,counts
 
@@ -258,9 +215,8 @@ def plot_aoi_tail(unique_value, ccdf):
     plt.grid(True)
 
 
-
-def plot_PRR(cumulative_prr_value):
-    # Plot PDR over time
+def plot_PRR(cumulative_prr_value, y_min=None, y_max=None):
+    # Plot PRR over time
     plt.figure(figsize=(10, 6))
     plt.plot(cumulative_prr_value, label='PRR over Time')
     plt.xlabel('Number of PRR values')
@@ -268,7 +224,10 @@ def plot_PRR(cumulative_prr_value):
     plt.title('PRR Trend Over Time')
     plt.legend()
     plt.grid(True)
-    plt.show()
+
+    # Set the y-axis range if specified
+    if y_min is not None and y_max is not None:
+        plt.ylim(y_min, y_max)
 
 
 

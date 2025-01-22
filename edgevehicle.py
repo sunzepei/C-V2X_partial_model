@@ -29,16 +29,19 @@ counting_interval = 1000
 reselection_probability = 0.2
 
 # Variables to store PRR values
-prr_values = []
 cumulative_prr_value = []
+cumulative_prr_value_edge = []
 cumulative_prr_value_central = []
-cumulative_prr_sum_central = 0
 cumulative_prr_sum = 0
+cumulative_prr_sum_edge = 0
+cumulative_prr_sum_central = 0
 prr_count = 0
 prr_count_central = 0
+prr_count_edge = 0
 min_percent = 0.2
 threshold = 3
-vehicles_index = [33, 34, 35, 36, 37]
+vehicles_index_edge = [65, 66, 67, 68, 69]
+vehicle_index_central = [33, 34, 35, 36, 37]
 
 
 # Initialize vehicle information
@@ -62,29 +65,29 @@ for vehicle in range(num_vehicles):
 
 # Initial the Storage of the data for vehicles
 IPG_Storage = {
-    33: {neighbor: [] for neighbor in range(23, 44) if neighbor != 33},  # Neighbors for transmitter 33 are 23 to 43
-    34: {neighbor: [] for neighbor in range(24, 45) if neighbor != 34},  # Example: Neighbors for transmitter 34
-    35: {neighbor: [] for neighbor in range(25, 46) if neighbor != 35},  # Example: Neighbors for transmitter 35
-    36: {neighbor: [] for neighbor in range(26, 47) if neighbor != 36},  # Example: Neighbors for transmitter 36
-    37: {neighbor: [] for neighbor in range(27, 48) if neighbor != 37},  # Example: Neighbors for transmitter 37
+    65: {neighbor: [] for neighbor in range(55, 70) if neighbor != 65},  # Neighbors for transmitter 65 are 55 to 64
+    66: {neighbor: [] for neighbor in range(56, 70) if neighbor != 66},  # Example: Neighbors for transmitter 66
+    67: {neighbor: [] for neighbor in range(57, 70) if neighbor != 67},  # Example: Neighbors for transmitter 67
+    68: {neighbor: [] for neighbor in range(58, 70) if neighbor != 68},  # Example: Neighbors for transmitter 68
+    69: {neighbor: [] for neighbor in range(59, 70) if neighbor != 69},  # Example: Neighbors for transmitter 69
 }
 
 # Initial the Storage of the Latest Updated Subframe for vehicles
 Last_update_Storage = {
-    33: {neighbor: 0 for neighbor in range(23, 44) if neighbor != 33},  # Neighbors for transmitter 33 are 23 to 43
-    34: {neighbor: 0 for neighbor in range(24, 45) if neighbor != 34},  # Example: Neighbors for transmitter 34
-    35: {neighbor: 0 for neighbor in range(25, 46) if neighbor != 35},  # Example: Neighbors for transmitter 35
-    36: {neighbor: 0 for neighbor in range(26, 47) if neighbor != 36},  # Example: Neighbors for transmitter 36
-    37: {neighbor: 0 for neighbor in range(27, 48) if neighbor != 37},  # Example: Neighbors for transmitter 37
+    65: {neighbor: 0 for neighbor in range(55, 70) if neighbor != 65},  # Neighbors for transmitter 65 are 55 to 64
+    66: {neighbor: 0 for neighbor in range(56, 70) if neighbor != 66},  # Example: Neighbors for transmitter 66
+    67: {neighbor: 0 for neighbor in range(57, 70) if neighbor != 67},  # Example: Neighbors for transmitter 67
+    68: {neighbor: 0 for neighbor in range(58, 70) if neighbor != 68},  # Example: Neighbors for transmitter 68
+    69: {neighbor: 0 for neighbor in range(59, 70) if neighbor != 69},  # Example: Neighbors for transmitter 69
 }
 
 # Initial the Storage of the AOI for vehicles
 AOI_Storage = {
-    33: {neighbor: [] for neighbor in range(23, 44) if neighbor != 33},  # Neighbors for transmitter 33 are 23 to 43
-    34: {neighbor: [] for neighbor in range(24, 45) if neighbor != 34},  # Example: Neighbors for transmitter 34
-    35: {neighbor: [] for neighbor in range(25, 46) if neighbor != 35},  # Example: Neighbors for transmitter 35
-    36: {neighbor: [] for neighbor in range(26, 47) if neighbor != 36},  # Example: Neighbors for transmitter 36
-    37: {neighbor: [] for neighbor in range(27, 48) if neighbor != 37},  # Example: Neighbors for transmitter 37
+    65: {neighbor: [] for neighbor in range(55, 70) if neighbor != 65},  # Neighbors for transmitter 65 are 55 to 64
+    66: {neighbor: [] for neighbor in range(56, 70) if neighbor != 66},  # Example: Neighbors for transmitter 66
+    67: {neighbor: [] for neighbor in range(57, 70) if neighbor != 67},  # Example: Neighbors for transmitter 67
+    68: {neighbor: [] for neighbor in range(58, 70) if neighbor != 68},  # Example: Neighbors for transmitter 68
+    69: {neighbor: [] for neighbor in range(59, 70) if neighbor != 69},  # Example: Neighbors for transmitter 69
 }
 # for vehicle, info in vehicles_info.items():
 #     print(f"Vehicle {vehicle} neighbors: {info['neighbors']}")
@@ -96,7 +99,9 @@ AOI_Storage = {
 
 
 total_neighbors = sum(len(info['neighbors']) for info in vehicles_info.values()) - num_vehicles
-total_neighbors_central_five = 20 * 5
+
+# Sum the number of neighbors for vehicles in vehicles_index
+total_neighbors_edge = 60
 
 # Main simulation loop
 for subframe in tqdm(range(num_subframes), desc="Processing", ncols=100):
@@ -134,38 +139,49 @@ for subframe in tqdm(range(num_subframes), desc="Processing", ncols=100):
 
     f.update_neighbors_row(vehicles_info,channel_pick,subframe_position)
     transmissions = f.package_received(attempted_transmissions,successful_transmissions,vehicles_info)
+
     success_num = sum(len(value) for value in transmissions.values())
-    filtered_dict = {key: transmissions[key] for key in vehicles_index if key in transmissions}
-    success_num_central_five = sum(len(value) for value in filtered_dict.values())
-    # Step 3: Calculate Packet Delivery Ratio (PDR) every 2000 subframes
+    filtered_dict_edge = {key: transmissions[key] for key in vehicles_index_edge if key in transmissions}
+    filtered_dict_central = {key: transmissions[key] for key in vehicle_index_central if key in transmissions}
+    # print(transmissions)
+    # print(filtered_dict_edge)
+    # print(filtered_dict_central)
+    success_num_edge_five = sum(len(value) for value in filtered_dict_edge.values())
+    success_num_central_five = sum(len(value) for value in filtered_dict_central.values())
+
+
+    # Step 3: Calculate Packet Delivery Ratio (PRR)over all vehicles every 2000 subframes
     if subframe % counting_interval == 0 and subframe != 0:
+
         prr = f.calculate_PRR(success_num, total_neighbors)
         cumulative_prr_sum += prr
         prr_count += 1
         cumulative_prr = cumulative_prr_sum / prr_count
         cumulative_prr_value.append(cumulative_prr)
-    
+    ## Calculate the edge 5 vehicles PRR every 2000 subframes
     if subframe % counting_interval == 0 and subframe != 0:
-        prr_central = f.calculate_PRR(success_num_central_five, total_neighbors_central_five)
-        cumulative_prr_sum_central += prr_central
+
+        prr_central = f.calculate_PRR(success_num_edge_five, total_neighbors_edge)
+        cumulative_prr_sum_edge += prr_central
         prr_count_central += 1
-        cumulative_prr_central = cumulative_prr_sum_central / prr_count_central
+        cumulative_prr_edge = cumulative_prr_sum_edge / prr_count_central
+        cumulative_prr_value_edge.append(cumulative_prr_edge)
+
+    ## Calculate the central 5 vehicles PRR every 2000 subframes
+    if subframe % counting_interval == 0 and subframe != 0:
+        prr_central = f.calculate_PRR(success_num_central_five,100)
+        cumulative_prr_sum_central += prr_central
+        prr_count_edge += 1
+        cumulative_prr_central = cumulative_prr_sum_central /  prr_count_edge
         cumulative_prr_value_central.append(cumulative_prr_central)
 
     # print(attempted_transmissions)
     # print(transmissions)
-    f.IPGModel_Berry(transmissions, IPG_Storage, subframe,vehicles_index)
-    f.AOI_last_update(Last_update_Storage,subframe,transmissions,vehicles_index)
+    f.IPGModel_Berry(transmissions, IPG_Storage, subframe,vehicles_index_edge)
+    f.AOI_last_update(Last_update_Storage,subframe,transmissions,vehicles_index_edge)
     f.AOI_model(Last_update_Storage,subframe,AOI_Storage)# for vehicle, info in vehicles_info.items():
 #     print(f"Vehicle {vehicle} successful transmissions): {info['successful_transmissions']}")
 
-
-specific_vehicles = [33, 34, 35, 36, 37,65, 66, 67, 68, 69]  # The vehicle ID you want to filter for
-
-for channel, neighbors in attempted_transmissions.items():
-    # Check if any specific vehicle is in the neighbors
-    if any(vehicle in neighbors for vehicle in specific_vehicles):
-        print(f"Channel {channel}: {neighbors}")
 
 ipg_data = f.calculate_IPG(IPG_Storage)
 merged_ipg_list = f.merge_data(ipg_data)
@@ -181,6 +197,8 @@ print("AOI Storage saved to 'AOI_Storage.xlsx'")
 
 f.plot_ipg_tail(unique_ipg_value, ipg_ccdf)
 f.plot_aoi_tail(unique_aoi_value, aoi_ccdf)
+
 f.plot_PRR(cumulative_prr_value)
 f.plot_PRR(cumulative_prr_value_central)
+f.plot_PRR(cumulative_prr_value_edge)
 plt.show()

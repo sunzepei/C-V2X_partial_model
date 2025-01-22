@@ -1,10 +1,9 @@
-## This code simulate Partially connected vehicles environment
-## The vehicle distance is 50m, number of vehicles is 70, the entire length is 3450m(equally placed)
-## The communication range is 500m which is 10 vehicles
+## This code simulate Partially connected vehicles environment with attack on AOI
+## The number of vehicles is 70, there are attack evenly or not evenly distributed in the vehicles
+## The communication range is 10 vehicles
 ## Simulation loop is the same, sub-channel selection
 ## Only different is the collision detection part.
 ##
-
 
 
 import numpy as np
@@ -18,7 +17,6 @@ import random
 seed = 42
 random.seed(seed)  # Seed the built-in random module
 np.random.seed(seed)  # Seed the NumPy random module
-
 
 # Simulation parameters
 num_vehicles = 70
@@ -44,9 +42,10 @@ min_percent = 0.2
 threshold = 3
 vehicles_index = [33, 34, 35, 36, 37]
 
-## the first para is number of attackers, the second para is the distance between attackers
+## the first para is number of vehicles, the second para is the distance between attackers
 attacker_positions = at.generate_attacker_position_pile()
-num_attackers = 60
+num_attackers = 30
+
 attackers_info = {}
 
 # Initialize attackers information
@@ -56,13 +55,13 @@ for attacker_id in range(num_vehicles, num_vehicles + num_attackers):
     
     # Calculate neighbors based on position and communication range
     start_idx = max(0, left_vehicle - communication_range)
-    end_idx = min(num_vehicles - 1, right_vehicle + communication_range-1)
+    end_idx = min(num_vehicles - 1, right_vehicle + communication_range -1 )
     neighbors = list(range(start_idx, end_idx + 1))
 
     # Add attacker info
     attackers_info[attacker_id] = {
         'sps_interval': 10,  # Fixed SPS interval for all attackers
-        'attack_subchannel': None,
+        'current_subchannel': None,
         'next_attack_frame': 0,
         'neighbors': neighbors,
         'resource_map': np.zeros((num_subchannels, sliding_window_size), dtype=np.uint8),
@@ -98,11 +97,8 @@ for vehicle in range(num_vehicles):
         # Local resource map for the last 10 subframes sliding window
         'resource_map': np.zeros((num_subchannels, sliding_window_size), dtype=np.uint8),
         }
-number_attack_in_neighbors = 0
-for vehicle, info in vehicles_info.items():
-    number_attack_in_neighbors += sum(1 for neighbor in info['neighbors'] if neighbor >= attacker_start_index)
-print(f"Number of attackers in neighbors: {number_attack_in_neighbors}")
-total_neighbors = sum(len(info['neighbors']) for info in vehicles_info.values()) - num_vehicles - number_attack_in_neighbors
+
+total_neighbors = sum(len(info['neighbors']) for info in vehicles_info.values()) - num_vehicles
 total_neighbors_central_five = 20 * 5
 # Initial the Storage of the data for vehicles
 IPG_Storage = {
@@ -169,9 +165,9 @@ for subframe in tqdm(range(num_subframes), desc="Processing", ncols=100):
         # Mark the subchannel usage for attackers first
     for attacker_id, info in attackers_info.items():
         if subframe == info['next_attack_frame']:
-            info['attack_subchannel'] = at.select_channel_to_attack(info['resource_map'],num_subchannels)
+            info['current_subchannel'] = at.select_channel_to_attackAOI(info['resource_map'],num_subchannels,subframe_position)
             info['next_attack_frame'] = subframe + info['sps_interval']
-        current_channel = info['attack_subchannel']
+        current_channel = info['current_subchannel']
         attacker_channel_pick[attacker_id] = current_channel
 
         if current_channel not in attempted_transmissions:
@@ -192,22 +188,21 @@ for subframe in tqdm(range(num_subframes), desc="Processing", ncols=100):
     # Filter the dictionary to only include the target keys
     filtered_dict = {key: transmissions[key] for key in vehicles_index if key in transmissions}
     success_num_central_five = sum(len(value) for value in filtered_dict.values())
-    
-    # Step 3: Calculate Packet Delivery Ratio (PDR) every 2000 subframes
+    # Calculate Packet Delivery Ratio (PRR) every 2000 subframes
     if subframe % counting_interval == 0 and subframe != 0:
         prr = at.calculate_PRR(success_num, total_neighbors)
         cumulative_prr_sum += prr
         prr_count += 1
         cumulative_prr = cumulative_prr_sum / prr_count
         cumulative_prr_value.append(cumulative_prr)
-        ## Calculate the central 5 vehicles PRR every 2000 subframes
+
+    ## Calculate the central 5 vehicles PRR every 2000 subframes
     if subframe % counting_interval == 0 and subframe != 0:
         prr_central = at.calculate_PRR(success_num_central_five, total_neighbors_central_five)
         cumulative_prr_sum_central += prr_central
         prr_count_central += 1
         cumulative_prr_central = cumulative_prr_sum_central / prr_count_central
         cumulative_prr_value_central.append(cumulative_prr_central)
-
     at.IPGModel_Berry(transmissions, IPG_Storage, subframe,vehicles_index)
     at.AOI_last_update(Last_update_Storage,subframe,transmissions,vehicles_index)
     at.AOI_model(Last_update_Storage,subframe,AOI_Storage)# for vehicle, info in vehicles_info.items():
@@ -221,7 +216,7 @@ unique_ipg_value,ipg_ccdf = at.calculate_ipg_tail(merged_ipg_list)
 ## problem here: the reason why AoI tail is too long cause i didn't count the vehicle itself it 
 merge_aoi_list = at.merge_data(AOI_Storage)
 unique_aoi_value, aoi_ccdf,num_count = at.calculate_aoi_tail(merge_aoi_list)
-value_count_dict = dict(zip(unique_aoi_value,num_count))
+# value_count_dict = dict(zip(unique_aoi_value,num_count))
 # df = pd.DataFrame(value_count_dict.items(), columns=['AOI', 'Count'])
 # df.to_csv("AOI_Storage.csv", index=False)
 # print("AOI Storage saved to 'AOI_Storage.xlsx'")
