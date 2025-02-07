@@ -49,8 +49,9 @@ vehicle_index_central = [33, 34, 35, 36, 37]
 prr_count_edge = 0
 ## the first para is number of attackers, the second para is the distance between attackers
 attacker_positions = at.generate_attacker_position_pile()
-num_attackers = 6
-attackers_info = {}
+num_attackers = 48
+attackers_info = {} 
+one_shot_range = (5,16)  # Range for the one-shot counter
 
 # Initialize attackers information
 for attacker_id in range(num_vehicles, num_vehicles + num_attackers):
@@ -97,8 +98,12 @@ for vehicle in range(num_vehicles):
         'current_subchannel': np.random.choice(num_subchannels),
         'next_selection_frame': 0,
         'sps_counter': np.random.randint(sps_interval_range[0], sps_interval_range[1]),
+        'use_one_shot': False,
+        'original_subchannel': None,
+        'one_shot_counter': np.random.randint(one_shot_range[0], one_shot_range[1]),
         # Local resource map for the last 10 subframes sliding window
         'resource_map': np.zeros((num_subchannels, sliding_window_size), dtype=np.uint8),
+        'last_update': 0,
         }
 number_attack_in_neighbors = 0
 for vehicle, info in vehicles_info.items():
@@ -158,21 +163,46 @@ for subframe in tqdm(range(num_subframes), desc="Processing", ncols=100):
         # print(f"Now is processing vehicle {vehicle}")
          # Handle SPS counter and reselection
         if subframe == info['next_selection_frame']:
-            if info['sps_counter'] <= 0:
-                if np.random.rand() < reselection_probability:
+            if info['use_one_shot']:
+                # Return to original subchannel after one-shot usage
+                info['current_subchannel'] = info['original_subchannel']
+                info['use_one_shot'] = False
+            elif info['sps_counter'] == 0:  # Cs = 0
+                if np.random.rand() < reselection_probability:  # Change resource
                 # Randomly reselrect subchannel if the interval has elapsed
                     info['current_subchannel'] = at.choose_subchannel(info['current_subchannel'],
                                                                             info['resource_map'],threshold)
-                info['sps_counter'] = np.random.randint(sps_interval_range[0], sps_interval_range[1])
+                    info['sps_counter'] = np.random.randint(sps_interval_range[0], sps_interval_range[1])
+                    info['one_shot_counter'] = np.random.randint(one_shot_range[0], one_shot_range[1])
+                else:
+                    info['sps_counter'] = np.random.randint(sps_interval_range[0],
+                                                             sps_interval_range[1])  # Reassign SPS interval
+                    if info['one_shot_counter'] == 0:  # Co = 0
+                        info['original_subchannel'] = info['current_subchannel']
+                        info['current_subchannel'] = at.choose_subchannel(info['current_subchannel'],
+                                                                            info['resource_map'],threshold)
+                        info['one_shot_counter'] = np.random.randint(one_shot_range[0], one_shot_range[1])
+                        info['use_one_shot'] = True
+                    else:
+                        pass
+            else:
+                if info['one_shot_counter'] == 0:  # Co = 0
+                    info['original_subchannel'] = info['current_subchannel']
+                    info['current_subchannel'] = at.choose_subchannel(info['current_subchannel'],
+                                                                            info['resource_map'],threshold)
+                    info['one_shot_counter'] = np.random.randint(one_shot_range[0], one_shot_range[1])
+                    info['use_one_shot'] = True
+                else:
+                    pass
 
-            vehicle_channel_pick[vehicle] = info['current_subchannel']
-            info['sps_counter'] -= 1
-            # print(f"the {vehicle} counter is {info['sps_counter']}")
+            info['sps_counter'] = max(0, info['sps_counter'] - 1)
+            info['one_shot_counter'] -= 1
             info['next_selection_frame'] = subframe + 1
             
+
+
        # Track attempted transmissions
         current_channel = info['current_subchannel']
-
         if current_channel not in attempted_transmissions:
             attempted_transmissions[current_channel] = []
         attempted_transmissions[current_channel].append(vehicle)
@@ -249,15 +279,15 @@ merge_aoi_list = at.merge_data(AOI_Storage)
 unique_aoi_value, aoi_ccdf,num_count = at.calculate_aoi_tail(merge_aoi_list)
 
 
-##Store the data of PRR
-df = pd.DataFrame({
-    "Key": prr_count_dic,
-    "Value1": list(map(float,cumulative_prr_value)),
-    "Value2": list(map(float,cumulative_prr_value_edge)),
-    "Value3": list(map(float,cumulative_prr_value_central)),
-})
-df.to_csv("PRR_Storage.csv", index=False)
-print("PRR Storage saved to 'PRR_Storage.xlsx'")
+# ##Store the data of PRR
+# df = pd.DataFrame({
+#     "Key": prr_count_dic,
+#     "Value1": list(map(float,cumulative_prr_value)),
+#     "Value2": list(map(float,cumulative_prr_value_edge)),
+#     "Value3": list(map(float,cumulative_prr_value_central)),
+# })
+# df.to_csv("PRR_Storage.csv", index=False)
+# print("PRR Storage saved to 'PRR_Storage.xlsx'")
 
 
 ### store the data of AOI
